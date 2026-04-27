@@ -1,12 +1,17 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
+import { useEffect } from "react";
 
 import appCss from "../styles.css?url";
+import "../i18n";
+import { applyLangToDocument } from "../i18n";
+import { AuthProvider } from "../lib/auth";
+import i18n from "../i18n";
 
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
+        <h1 className="text-7xl font-serif font-bold text-foreground">404</h1>
         <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
         <p className="mt-2 text-sm text-muted-foreground">
           The page you're looking for doesn't exist or has been moved.
@@ -14,7 +19,7 @@ function NotFoundComponent() {
         <div className="mt-6">
           <Link
             to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex items-center justify-center rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
             Go home
           </Link>
@@ -36,7 +41,6 @@ export const Route = createRootRoute({
       { property: "og:description", content: "Launch a modern online store with ETWIN Commerce. Multi-tenant SaaS for Arabic and French-speaking merchants." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -55,7 +59,7 @@ export const Route = createRootRoute({
 
 function RootShell({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="fr" dir="ltr">
       <head>
         <HeadContent />
       </head>
@@ -68,5 +72,12 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
-  return <Outlet />;
+  useEffect(() => {
+    applyLangToDocument(i18n.resolvedLanguage || "fr");
+  }, []);
+  return (
+    <AuthProvider>
+      <Outlet />
+    </AuthProvider>
+  );
 }

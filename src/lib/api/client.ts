@@ -1,8 +1,4 @@
-// REST client for the ETWIN Commerce backend.
-// When VITE_PHP_API_BASE is set, all calls hit that PHP API.
-// Otherwise we transparently fall back to a localStorage-backed mock,
-// so the UI is fully usable in dev and demo mode.
-
+// REST client. Set VITE_PHP_API_BASE to swap mock for live PHP backend.
 import { mockApi } from "./mock";
 import type {
   AuthResponse,
@@ -54,29 +50,26 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     try {
       const body = await res.json();
       msg = body?.message || body?.error || msg;
-    } catch {
-      // ignore JSON parse error
-    }
+    } catch {/* noop */}
     throw new Error(msg);
   }
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
 }
 
-// ---- Public API surface ----
 export const api = {
-  // Auth
   login: (email: string, password: string): Promise<AuthResponse> =>
     useMockApi() ? mockApi.login(email, password) : request("/api/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
 
   register: (input: { email: string; password: string; fullName: string; storeName: string }): Promise<AuthResponse> =>
     useMockApi() ? mockApi.register(input) : request("/api/auth/register", { method: "POST", body: JSON.stringify(input) }),
 
-  // Stores
+  updateStore: (tenantId: string, patch: Partial<Store>): Promise<Store> =>
+    useMockApi() ? mockApi.updateStore(tenantId, patch) : request(`/api/stores/${tenantId}`, { method: "PATCH", body: JSON.stringify(patch) }),
+
   getStoreBySlug: (slug: string): Promise<Store | null> =>
     useMockApi() ? mockApi.getStoreBySlug(slug) : request(`/api/stores/${encodeURIComponent(slug)}`),
 
-  // Products
   listProducts: (tenantId: string): Promise<Product[]> =>
     useMockApi() ? mockApi.listProducts(tenantId) : request(`/api/products`),
 
@@ -89,7 +82,6 @@ export const api = {
   deleteProduct: (tenantId: string, id: string): Promise<void> =>
     useMockApi() ? mockApi.deleteProduct(tenantId, id) : request(`/api/products/${id}`, { method: "DELETE" }),
 
-  // Orders & customers
   listOrders: (tenantId: string): Promise<Order[]> =>
     useMockApi() ? mockApi.listOrders(tenantId) : request(`/api/orders`),
   listCustomers: (tenantId: string): Promise<Customer[]> =>
@@ -98,6 +90,9 @@ export const api = {
   dashboardStats: (tenantId: string): Promise<DashboardStats> =>
     useMockApi() ? mockApi.dashboardStats(tenantId) : request(`/api/dashboard/stats`),
 
-  createOrderFromCart: (tenantId: string, payload: { customerName: string; phone: string; items: { productId: string; qty: number }[] }): Promise<Order> =>
+  createOrderFromCart: (tenantId: string, payload: { customerName: string; phone: string; address?: string; city?: string; items: { productId: string; qty: number }[] }): Promise<Order> =>
     useMockApi() ? mockApi.createOrderFromCart(tenantId, payload) : request(`/api/orders`, { method: "POST", body: JSON.stringify(payload) }),
+
+  confirmOrder: (tenantId: string, id: string): Promise<Order> =>
+    useMockApi() ? mockApi.confirmOrder(tenantId, id) : request(`/api/orders/${id}/confirm`, { method: "POST" }),
 };

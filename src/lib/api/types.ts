@@ -1,8 +1,8 @@
 // Shared types for the ETWIN Commerce REST client.
-// These mirror the contract expected from the PHP backend.
+// Mirror the contract expected from the PHP backend.
 
-export type Plan = "trial" | "basic" | "pro";
-export type Currency = "USD" | "EUR" | "MAD";
+export type Plan = "trial" | "pro";
+export type Currency = "MAD" | "EUR" | "USD";
 export type ProductStatus = "active" | "draft" | "archived";
 export type OrderStatus = "pending" | "paid" | "shipped";
 
@@ -14,8 +14,18 @@ export interface User {
 
 export interface Subscription {
   plan: Plan;
-  expiresAt: string; // ISO
+  expiresAt: string;
   active: boolean;
+}
+
+export interface StoreNotifications {
+  whatsappNumber: string;
+  telegramChatId?: string | null;
+}
+
+export interface StoreTracking {
+  facebookPixel?: string | null;
+  tiktokPixel?: string | null;
 }
 
 export interface Store {
@@ -24,6 +34,11 @@ export interface Store {
   slug: string;
   ownerId: string;
   currency: Currency;
+  city: string;
+  logoUrl?: string | null;
+  notifications: StoreNotifications;
+  tracking: StoreTracking;
+  onboardingComplete: boolean;
   subscription: Subscription;
 }
 
@@ -39,7 +54,10 @@ export interface Product {
   name: string;
   description: string;
   price: number;
+  originalPrice?: number | null;
   image: string;
+  extraImages?: string[];
+  videoUrl?: string | null;
   stock: number;
   status: ProductStatus;
   createdAt: string;
@@ -66,6 +84,9 @@ export interface Order {
   id: string;
   tenantId: string;
   customerName: string;
+  customerPhone?: string;
+  customerAddress?: string;
+  city?: string;
   customerId?: string;
   total: number;
   status: OrderStatus;
@@ -82,5 +103,9 @@ export interface DashboardStats {
   ordersDelta: number;
   customersDelta: number;
   conversionDelta: number;
+  todayRevenue: number;
+  newOrdersCount: number;
+  pendingCount: number;
+  bestSeller?: { name: string; sales: number } | null;
   salesByDay: { day: string; value: number }[];
 }

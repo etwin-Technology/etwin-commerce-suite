@@ -59,7 +59,7 @@ export const Route = createRootRoute({
 
 function RootShell({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" dir="ltr">
+    <html lang="ar" dir="rtl">
       <head>
         <HeadContent />
       </head>
@@ -73,7 +73,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   useEffect(() => {
-    applyLangToDocument(i18n.resolvedLanguage || "fr");
+    applyLangToDocument(i18n.resolvedLanguage || "ar");
   }, []);
   return (
     <AuthProvider>

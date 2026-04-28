@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { ArrowLeft, ArrowRight, Bell, Check, MessageCircle, Pixelarticons, ShieldCheck, Smartphone, Truck, Zap } from "lucide-react";
+import { ArrowLeft, ArrowRight, Bell, Check, MessageCircle, ShieldCheck, Smartphone, Truck, Zap } from "lucide-react";
 import { MarketingFooter, MarketingHeader } from "@/components/MarketingChrome";
 
 export const Route = createFileRoute("/")({

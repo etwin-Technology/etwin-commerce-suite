@@ -30,7 +30,7 @@ function RegisterPage() {
     setError(null);
     try {
       await register(form);
-      void navigate({ to: "/dashboard" });
+      void navigate({ to: "/onboarding" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error");
     } finally {

@@ -1,15 +1,16 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { LayoutDashboard, Package, ShoppingCart, Users, Settings, LogOut, Store as StoreIcon, ExternalLink } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, Users, Settings, LogOut, Store as StoreIcon, ExternalLink, LayoutTemplate } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 
 const navItems = [
-  { to: "/dashboard", key: "dashboard", icon: LayoutDashboard },
-  { to: "/dashboard/products", key: "products", icon: Package },
-  { to: "/dashboard/orders", key: "orders", icon: ShoppingCart },
-  { to: "/dashboard/customers", key: "customers", icon: Users },
-  { to: "/dashboard/settings", key: "settings", icon: Settings },
+  { to: "/dashboard", key: "dashboard", icon: LayoutDashboard, label: "nav.dashboard" },
+  { to: "/dashboard/products", key: "products", icon: Package, label: "nav.products" },
+  { to: "/dashboard/orders", key: "orders", icon: ShoppingCart, label: "nav.orders" },
+  { to: "/dashboard/customers", key: "customers", icon: Users, label: "nav.customers" },
+  { to: "/dashboard/landing", key: "landing", icon: LayoutTemplate, label: "nav.landing" },
+  { to: "/dashboard/settings", key: "settings", icon: Settings, label: "nav.settings" },
 ] as const;
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {

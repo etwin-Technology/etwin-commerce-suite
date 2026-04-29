@@ -19,6 +19,7 @@ import { Route as StoreSlugRouteImport } from './routes/store.$slug'
 import { Route as DashboardSettingsRouteImport } from './routes/dashboard.settings'
 import { Route as DashboardProductsRouteImport } from './routes/dashboard.products'
 import { Route as DashboardOrdersRouteImport } from './routes/dashboard.orders'
+import { Route as DashboardLandingRouteImport } from './routes/dashboard.landing'
 import { Route as DashboardCustomersRouteImport } from './routes/dashboard.customers'
 
 const RegisterRoute = RegisterRouteImport.update({
@@ -71,6 +72,11 @@ const DashboardOrdersRoute = DashboardOrdersRouteImport.update({
   path: '/orders',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardLandingRoute = DashboardLandingRouteImport.update({
+  id: '/landing',
+  path: '/landing',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardCustomersRoute = DashboardCustomersRouteImport.update({
   id: '/customers',
   path: '/customers',
@@ -84,6 +90,7 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof OnboardingRoute
   '/register': typeof RegisterRoute
   '/dashboard/customers': typeof DashboardCustomersRoute
+  '/dashboard/landing': typeof DashboardLandingRoute
   '/dashboard/orders': typeof DashboardOrdersRoute
   '/dashboard/products': typeof DashboardProductsRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
@@ -96,6 +103,7 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingRoute
   '/register': typeof RegisterRoute
   '/dashboard/customers': typeof DashboardCustomersRoute
+  '/dashboard/landing': typeof DashboardLandingRoute
   '/dashboard/orders': typeof DashboardOrdersRoute
   '/dashboard/products': typeof DashboardProductsRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
@@ -110,6 +118,7 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRoute
   '/register': typeof RegisterRoute
   '/dashboard/customers': typeof DashboardCustomersRoute
+  '/dashboard/landing': typeof DashboardLandingRoute
   '/dashboard/orders': typeof DashboardOrdersRoute
   '/dashboard/products': typeof DashboardProductsRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
@@ -125,6 +134,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/register'
     | '/dashboard/customers'
+    | '/dashboard/landing'
     | '/dashboard/orders'
     | '/dashboard/products'
     | '/dashboard/settings'
@@ -137,6 +147,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/register'
     | '/dashboard/customers'
+    | '/dashboard/landing'
     | '/dashboard/orders'
     | '/dashboard/products'
     | '/dashboard/settings'
@@ -150,6 +161,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/register'
     | '/dashboard/customers'
+    | '/dashboard/landing'
     | '/dashboard/orders'
     | '/dashboard/products'
     | '/dashboard/settings'
@@ -238,6 +250,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardOrdersRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/landing': {
+      id: '/dashboard/landing'
+      path: '/landing'
+      fullPath: '/dashboard/landing'
+      preLoaderRoute: typeof DashboardLandingRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/customers': {
       id: '/dashboard/customers'
       path: '/customers'
@@ -250,6 +269,7 @@ declare module '@tanstack/react-router' {
 
 interface DashboardRouteChildren {
   DashboardCustomersRoute: typeof DashboardCustomersRoute
+  DashboardLandingRoute: typeof DashboardLandingRoute
   DashboardOrdersRoute: typeof DashboardOrdersRoute
   DashboardProductsRoute: typeof DashboardProductsRoute
   DashboardSettingsRoute: typeof DashboardSettingsRoute
@@ -258,6 +278,7 @@ interface DashboardRouteChildren {
 
 const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardCustomersRoute: DashboardCustomersRoute,
+  DashboardLandingRoute: DashboardLandingRoute,
   DashboardOrdersRoute: DashboardOrdersRoute,
   DashboardProductsRoute: DashboardProductsRoute,
   DashboardSettingsRoute: DashboardSettingsRoute,

@@ -44,7 +44,7 @@ export function MarketingHeader() {
       <div className="mx-auto max-w-7xl flex items-center justify-between px-4 sm:px-6 lg:px-10 h-16">
         <Link to="/" className="flex items-baseline gap-2 shrink-0" onClick={() => setOpen(false)}>
           <span className="font-serif text-xl sm:text-2xl font-bold text-primary tracking-tight">ETWIN</span>
-          <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground hidden xs:inline">Commerce</span>
+          <span className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground hidden sm:inline">Commerce</span>
         </Link>
 
         <nav className="hidden lg:flex items-center gap-7 text-sm text-muted-foreground">

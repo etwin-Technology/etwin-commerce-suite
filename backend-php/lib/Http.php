@@ -1,6 +1,7 @@
 <?php
 // Tiny HTTP helpers: CORS, JSON I/O, auth context, validation.
 class Http {
+
     public static function bootstrap(): void {
         $cfg = require __DIR__ . '/../config/config.php';
         header('Access-Control-Allow-Origin: ' . $cfg['cors_allow_origin']);
@@ -14,7 +15,7 @@ class Http {
         }
     }
 
-    public static function json(array|object $data, int $code = 200): void {
+    public static function json(array|object|null $data, int $code = 200): void {
         http_response_code($code);
         echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         exit;
@@ -25,7 +26,7 @@ class Http {
     }
 
     public static function body(): array {
-        $raw = file_get_contents('php://input') ?: '';
+        $raw  = file_get_contents('php://input') ?: '';
         $data = json_decode($raw, true);
         return is_array($data) ? $data : [];
     }
@@ -58,13 +59,26 @@ class Http {
 
     /** Ensure the authenticated user owns the tenant (multi-tenant guard). */
     public static function ownedTenant(): array {
-        $u = self::authUser();
+        $u   = self::authUser();
         $tid = self::tenantId();
-        $st = DB::pdo()->prepare('SELECT * FROM stores WHERE id = ? AND owner_id = ? LIMIT 1');
+        $st  = DB::pdo()->prepare('SELECT * FROM stores WHERE id = ? AND owner_id = ? LIMIT 1');
         $st->execute([$tid, $u['sub']]);
         $store = $st->fetch();
         if (!$store) self::fail('Tenant not found or forbidden', 403);
         return ['user' => $u, 'store' => $store];
+    }
+
+    /**
+     * Require the caller to be a super admin (is_admin = 1).
+     * Returns the decoded JWT payload on success.
+     */
+    public static function requireAdmin(): array {
+        $u = self::authUser();
+        $st = DB::pdo()->prepare('SELECT is_admin FROM users WHERE id = ? LIMIT 1');
+        $st->execute([$u['sub']]);
+        $row = $st->fetch();
+        if (!$row || !$row['is_admin']) self::fail('Admin access required', 403);
+        return $u;
     }
 
     public static function slugify(string $s): string {

@@ -2,6 +2,7 @@
 // Mirror the contract expected from the PHP backend.
 
 export type Plan = "trial" | "pro";
+export type UserRole = "user" | "admin" | "super_admin";
 export type Currency = "MAD" | "EUR" | "USD";
 export type ProductStatus = "active" | "draft" | "archived";
 export type OrderStatus = "pending" | "paid" | "shipped";
@@ -13,6 +14,8 @@ export interface User {
   id: string;
   email: string;
   fullName: string;
+  role: UserRole;
+  /** true for admin + super_admin */
   isAdmin?: boolean;
 }
 
@@ -94,7 +97,7 @@ export interface Store {
 export interface AuthResponse {
   token: string;
   user: User;
-  store: Store;
+  store: Store | null;
 }
 
 // ─── Products ────────────────────────────────────────────────────────────────
@@ -227,6 +230,38 @@ export interface SubscriptionInfo {
   history: SubscriptionHistory[];
 }
 
+// ─── Plan Features ───────────────────────────────────────────────────────────
+
+export interface PlanFeature {
+  feature: string;
+  minPlan: Plan;
+  trialLimit: number | null;
+  description: string;
+}
+
+// ─── Platform Settings ───────────────────────────────────────────────────────
+
+export interface PlatformSettings {
+  maintenance_mode: boolean;
+  platform_name: string;
+  trial_days: number;
+  max_products_trial: number;
+  pricing_price: number;
+  pricing_currency: string;
+  hero_badge_ar: string;
+  hero_badge_fr: string;
+  hero_title_ar: string;
+  hero_title_fr: string;
+  hero_subtitle_ar: string;
+  hero_subtitle_fr: string;
+  hero_cta_ar: string;
+  hero_cta_fr: string;
+  support_whatsapp?: string;
+  support_email?: string;
+  footer_text_ar: string;
+  footer_text_fr: string;
+}
+
 // ─── Admin ───────────────────────────────────────────────────────────────────
 
 export interface AdminStats {
@@ -241,6 +276,7 @@ export interface AdminStats {
   monthlyMrr: number;
   newUsers7d: number;
   userGrowth: { day: string; value: number }[];
+  roleBreakdown?: Record<UserRole, number>;
 }
 
 export interface AdminUserStore {
@@ -258,6 +294,7 @@ export interface AdminUser {
   id: string;
   email: string;
   fullName: string;
+  role: UserRole;
   isAdmin: boolean;
   createdAt: string;
   store: AdminUserStore | null;
@@ -269,6 +306,7 @@ export interface AdminStore {
   slug: string;
   ownerEmail: string;
   ownerName: string;
+  ownerRole: UserRole;
   plan: Plan;
   expiresAt: string;
   active: boolean;

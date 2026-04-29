@@ -8,15 +8,28 @@ class ProductController {
     }
 
     public static function create(): void {
-        $ctx = Http::ownedTenant();
+        $ctx   = Http::ownedTenant();
+        $store = $ctx['store'];
+        $pdo   = DB::pdo();
+
+        // Plan-based product limit (trial: max 10 active products)
+        $limit = Http::planProductLimit($store);
+        if ($limit !== null) {
+            $countSt = $pdo->prepare("SELECT COUNT(*) FROM products WHERE tenant_id = ? AND status != 'archived'");
+            $countSt->execute([$store['id']]);
+            if ((int)$countSt->fetchColumn() >= $limit) {
+                Http::fail("Le plan Essai est limité à {$limit} produits. Passez au plan Pro pour des produits illimités.", 402);
+            }
+        }
+
         $b = Http::body();
         $in = Http::require($b, ['name','price','image']);
         $id = DB::uuid();
-        DB::pdo()->prepare('INSERT INTO products
+        $pdo->prepare('INSERT INTO products
             (id,tenant_id,name,description,price,original_price,image,extra_images,video_url,stock,status)
             VALUES (?,?,?,?,?,?,?,?,?,?,?)')
             ->execute([
-                $id, $ctx['store']['id'],
+                $id, $store['id'],
                 $in['name'],
                 (string)($b['description'] ?? ''),
                 (float)$in['price'],
@@ -25,9 +38,9 @@ class ProductController {
                 isset($b['extraImages']) ? json_encode($b['extraImages']) : null,
                 $b['videoUrl'] ?? null,
                 (int)($b['stock'] ?? 0),
-                $b['status'] ?? 'active',
+                in_array($b['status'] ?? '', ['active','draft','archived']) ? $b['status'] : 'active',
             ]);
-        $st = DB::pdo()->prepare('SELECT * FROM products WHERE id = ?');
+        $st = $pdo->prepare('SELECT * FROM products WHERE id = ?');
         $st->execute([$id]);
         Http::json(Mapper::product($st->fetch()), 201);
     }

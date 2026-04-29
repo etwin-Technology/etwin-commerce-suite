@@ -4,14 +4,14 @@ import type { Store, User } from "./api/types";
 
 interface SessionState {
   user: User | null;
-  store: Store | null;
+  store: Store | null; // null for super_admin accounts without a store
   isAuthenticated: boolean;
   loading: boolean;
 }
 
 interface AuthContextValue extends SessionState {
-  login: (email: string, password: string) => Promise<void>;
-  register: (input: { email: string; password: string; fullName: string; storeName: string }) => Promise<void>;
+  login: (email: string, password: string) => Promise<{ user: User; store: Store | null }>;
+  register: (input: { email: string; password: string; fullName: string; storeName: string }) => Promise<{ user: User; store: Store | null }>;
   logout: () => void;
   refreshStore: (store: Store) => void;
 }
@@ -21,7 +21,7 @@ const SESSION_KEY = "etwin_session";
 
 interface PersistedSession {
   user: User;
-  store: Store;
+  store: Store | null;
 }
 
 function loadSession(): PersistedSession | null {
@@ -58,17 +58,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login: AuthContextValue["login"] = async (email, password) => {
     const res = await api.login(email, password);
     setAuthToken(res.token);
-    setTenantId(res.store.id);
+    if (res.store) setTenantId(res.store.id);
     persistSession({ user: res.user, store: res.store });
     setState({ user: res.user, store: res.store, isAuthenticated: true, loading: false });
+    return { user: res.user, store: res.store };
   };
 
   const register: AuthContextValue["register"] = async (input) => {
     const res = await api.register(input);
     setAuthToken(res.token);
-    setTenantId(res.store.id);
+    if (res.store) setTenantId(res.store.id);
     persistSession({ user: res.user, store: res.store });
     setState({ user: res.user, store: res.store, isAuthenticated: true, loading: false });
+    return { user: res.user, store: res.store };
   };
 
   const logout = () => {

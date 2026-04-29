@@ -1,13 +1,20 @@
 <?php
-// Map MySQL rows → JSON contracts expected by the React client (src/lib/api/types.ts).
+/**
+ * Mapper — Map MySQL rows → JSON contracts expected by the React client.
+ */
 class Mapper {
 
     public static function user(array $r): array {
+        $role = $r['role'] ?? 'user';
+        // backward compat: is_admin=1 + role='user' → super_admin
+        if ($role === 'user' && !empty($r['is_admin'])) $role = 'super_admin';
+
         return [
             'id'       => $r['id'],
             'email'    => $r['email'],
             'fullName' => $r['full_name'],
-            'isAdmin'  => (bool)($r['is_admin'] ?? 0),
+            'role'     => $role,
+            'isAdmin'  => $role === 'super_admin' || $role === 'admin',
         ];
     }
 

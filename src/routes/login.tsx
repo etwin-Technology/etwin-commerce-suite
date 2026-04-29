@@ -28,8 +28,13 @@ function LoginPage() {
     setLoading(true);
     setError(null);
     try {
-      await login(email, password);
-      void navigate({ to: "/dashboard" });
+      const { user: loggedUser } = await login(email, password);
+      // Super admins without a store go directly to admin panel
+      if (loggedUser?.role === "super_admin" || loggedUser?.role === "admin") {
+        void navigate({ to: "/admin" });
+      } else {
+        void navigate({ to: "/dashboard" });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error");
     } finally {
@@ -93,8 +98,24 @@ function LoginPage() {
               </Link>
             </p>
 
-            <div className="mt-8 p-3 rounded-lg bg-surface-alt border border-border text-xs text-muted-foreground">
-              <strong className="text-foreground">Demo:</strong> demo@etwin.app / demo1234
+            <div className="mt-8 p-4 rounded-xl bg-surface-alt border border-border text-xs space-y-2">
+              <p className="font-semibold text-foreground mb-2">Comptes démo — mot de passe : <code className="text-primary">demo1234</code></p>
+              {[
+                { email: "demo@etwin.app",       label: "Marchand",    desc: "Atlas Watches · Essai" },
+                { email: "admin@etwin.app",       label: "Admin",       desc: "Sahara Boutique · Pro" },
+                { email: "superadmin@etwin.app",  label: "Super Admin", desc: "Accès complet" },
+              ].map(a => (
+                <button
+                  key={a.email}
+                  type="button"
+                  onClick={() => setEmail(a.email)}
+                  className="w-full text-start px-3 py-2 rounded-lg hover:bg-accent transition-colors"
+                >
+                  <span className="font-medium text-foreground">{a.label}</span>
+                  <span className="text-muted-foreground ms-2 text-[11px]">{a.email}</span>
+                  <span className="block text-[10px] text-muted-foreground/60">{a.desc}</span>
+                </button>
+              ))}
             </div>
           </div>
         </div>

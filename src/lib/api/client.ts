@@ -12,12 +12,15 @@ import type {
   DomainInfo,
   Order,
   PaginatedResponse,
+  PlanFeature,
+  PlatformSettings,
   Product,
   Store,
   StoreFooter,
   StoreHeader,
   StoreTheme,
   SubscriptionInfo,
+  UserRole,
 } from "./types";
 
 const API_BASE = (import.meta.env.VITE_PHP_API_BASE as string | undefined)?.replace(/\/$/, "") || "";
@@ -195,18 +198,21 @@ export const api = {
   upgradeSubscription: (plan: "pro"): Promise<{ ok: boolean; plan: string; expiresAt: string }> =>
     request(`/api/subscription/upgrade`, { method: "POST", body: JSON.stringify({ plan }) }),
 
-  // ─── Admin ───────────────────────────────────────────────────────────────
+  // ─── Admin — Stats & Lists ───────────────────────────────────────────────
   adminStats: (): Promise<AdminStats> =>
-    request(`/api/admin/stats`),
+    useMockApi() ? mockApi.adminStats() : request(`/api/admin/stats`),
 
-  adminUsers: (params?: { page?: number; q?: string }): Promise<PaginatedResponse<AdminUser>> => {
+  adminUsers: (params?: { page?: number; q?: string; role?: string }): Promise<PaginatedResponse<AdminUser>> => {
+    if (useMockApi()) return mockApi.adminUsers(params);
     const qs = new URLSearchParams();
     if (params?.page) qs.set("page", String(params.page));
     if (params?.q)    qs.set("q", params.q);
+    if (params?.role) qs.set("role", params.role);
     return request(`/api/admin/users?${qs.toString()}`);
   },
 
   adminStores: (params?: { page?: number; q?: string; plan?: string }): Promise<PaginatedResponse<AdminStore>> => {
+    if (useMockApi()) return mockApi.adminStores(params);
     const qs = new URLSearchParams();
     if (params?.page) qs.set("page", String(params.page));
     if (params?.q)    qs.set("q", params.q);
@@ -223,6 +229,9 @@ export const api = {
   adminDeleteUser: (userId: string): Promise<{ ok: boolean }> =>
     request(`/api/admin/users/${userId}/delete`, { method: "POST" }),
 
+  adminUpdateUserRole: (userId: string, role: UserRole): Promise<{ ok: boolean; role: UserRole }> =>
+    request(`/api/admin/users/${userId}/role`, { method: "PATCH", body: JSON.stringify({ role }) }),
+
   adminUpdatePlan: (storeId: string, plan: string, months?: number): Promise<{ ok: boolean; plan: string; expiresAt: string }> =>
     request(`/api/admin/stores/${storeId}/plan`, { method: "PATCH", body: JSON.stringify({ plan, months: months ?? 1 }) }),
 
@@ -231,4 +240,23 @@ export const api = {
 
   adminRevokeDomain: (storeId: string): Promise<{ ok: boolean }> =>
     request(`/api/admin/domains/${storeId}/revoke`, { method: "POST" }),
+
+  // ─── Admin — Platform Settings (super_admin) ─────────────────────────────
+  adminGetSettings: (): Promise<PlatformSettings> =>
+    useMockApi() ? mockApi.adminGetSettings() : request(`/api/admin/settings`),
+
+  adminUpdateSettings: (patch: Partial<PlatformSettings>): Promise<{ ok: boolean }> =>
+    useMockApi()
+      ? mockApi.adminUpdateSettings(patch)
+      : request(`/api/admin/settings`, { method: "PATCH", body: JSON.stringify(patch) }),
+
+  adminGetPlanFeatures: (): Promise<PlanFeature[]> =>
+    useMockApi() ? mockApi.adminGetPlanFeatures() : request(`/api/admin/plan-features`),
+
+  adminUpdatePlanFeature: (feature: string, patch: { minPlan?: string; trialLimit?: number }): Promise<{ ok: boolean }> =>
+    request(`/api/admin/plan-features/${feature}`, { method: "PATCH", body: JSON.stringify(patch) }),
+
+  // Public platform settings (no auth required — for landing page)
+  publicSettings: (): Promise<Partial<PlatformSettings>> =>
+    useMockApi() ? mockApi.publicSettings() : request(`/api/public/settings`),
 };

@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import {
-  LayoutDashboard, Package, ShoppingCart, Users, Settings, LogOut,
+  LayoutDashboard, Package, ShoppingCart, Users, LogOut,
   Store as StoreIcon, ExternalLink, LayoutTemplate, Palette,
   Globe, CreditCard, Menu, X, ChevronRight, Shield,
+  Settings, User as UserIcon, ChevronDown,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { LanguageSwitcher } from "./LanguageSwitcher";
@@ -31,12 +32,12 @@ const storeNav: NavItem[] = [
   { to: "/dashboard/domains",   key: "domains",    icon: Globe,           label: "Domaine" },
 ];
 
-const settingsNav: NavItem[] = [
-  { to: "/dashboard/settings",  key: "settings",   icon: Settings,        label: "Paramètres" },
-  { to: "/dashboard/subscription", key: "subscription", icon: CreditCard, label: "Abonnement" },
-];
-
-function NavGroup({ title, items, location }: { title: string; items: NavItem[]; location: { pathname: string } }) {
+function NavGroup({ title, items, location, onNavigate }: {
+  title: string;
+  items: NavItem[];
+  location: { pathname: string };
+  onNavigate?: () => void;
+}) {
   return (
     <div className="mb-1">
       <p className="px-3 mb-1 text-[10px] uppercase tracking-[0.15em] font-semibold text-sidebar-foreground/40 select-none">
@@ -48,6 +49,7 @@ function NavGroup({ title, items, location }: { title: string; items: NavItem[];
           <Link
             key={to}
             to={to}
+            onClick={onNavigate}
             className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 group ${
               active
                 ? "bg-white/10 text-white shadow-sm"
@@ -73,6 +75,132 @@ function NavGroup({ title, items, location }: { title: string; items: NavItem[];
   );
 }
 
+/** Floating user menu in the header (Settings + Subscription + Logout). */
+function UserMenu() {
+  const { user, store, logout } = useAuth();
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const handleLogout = () => {
+    setOpen(false);
+    logout();
+    void navigate({ to: "/" });
+  };
+
+  // close on outside click
+  const handleBlur = (e: React.FocusEvent<HTMLDivElement>) => {
+    if (!ref.current?.contains(e.relatedTarget as Node)) setOpen(false);
+  };
+
+  const days = store
+    ? Math.max(0, Math.ceil((new Date(store.subscription.expiresAt).getTime() - Date.now()) / 86400000))
+    : 0;
+  const isPro     = store?.subscription.plan === "pro";
+  const isExpired = days <= 0 && !!store;
+
+  return (
+    <div ref={ref} className="relative" onBlur={handleBlur}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="flex items-center gap-2 rounded-full border border-border bg-card px-2.5 py-1.5 hover:bg-accent transition-colors focus:outline-none"
+        aria-label="Menu utilisateur"
+      >
+        <span className="size-7 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
+          {user?.fullName?.charAt(0).toUpperCase() ?? "U"}
+        </span>
+        <span className="hidden sm:block text-xs font-semibold max-w-[100px] truncate">{user?.fullName?.split(" ")[0]}</span>
+        <ChevronDown className={`size-3.5 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <div className="absolute end-0 top-full mt-2 w-60 rounded-2xl border border-border bg-card shadow-2xl z-50 overflow-hidden">
+          {/* User info */}
+          <div className="px-4 pt-4 pb-3 border-b border-border">
+            <p className="text-sm font-semibold truncate">{user?.fullName}</p>
+            <p className="text-[11px] text-muted-foreground truncate">{user?.email}</p>
+            {user?.role && user.role !== "user" && (
+              <span className={`mt-1.5 inline-block text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide ${
+                user.role === "super_admin"
+                  ? "bg-amber-400/15 text-amber-600"
+                  : "bg-blue-400/15 text-blue-600"
+              }`}>
+                {user.role === "super_admin" ? "Super Admin" : "Admin"}
+              </span>
+            )}
+          </div>
+
+          {/* Subscription status */}
+          {store && (
+            <div className="px-4 py-3 border-b border-border">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-muted-foreground">Abonnement</span>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  isPro
+                    ? "bg-violet-500/10 text-violet-600"
+                    : isExpired
+                    ? "bg-red-500/10 text-red-600"
+                    : "bg-amber-500/10 text-amber-600"
+                }`}>
+                  {isPro ? "Pro" : isExpired ? "Expiré" : "Essai"}
+                </span>
+              </div>
+              {!isExpired && (
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  {isPro ? "Actif" : `${days} jour${days > 1 ? "s" : ""} restant${days > 1 ? "s" : ""}`}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Menu items */}
+          <div className="px-2 py-2">
+            <Link
+              to="/dashboard/settings"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-foreground hover:bg-accent transition-colors"
+            >
+              <Settings className="size-4 text-muted-foreground" />
+              <span>Paramètres</span>
+            </Link>
+            <Link
+              to="/dashboard/subscription"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-foreground hover:bg-accent transition-colors"
+            >
+              <CreditCard className="size-4 text-muted-foreground" />
+              <span>Abonnement</span>
+              {isExpired && (
+                <span className="ms-auto text-[10px] font-bold bg-red-500 text-white px-2 py-0.5 rounded-full">Renouveler</span>
+              )}
+            </Link>
+            {(user?.role === "admin" || user?.role === "super_admin") && (
+              <Link
+                to="/admin"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-amber-600 hover:bg-amber-50 transition-colors"
+              >
+                <Shield className="size-4" />
+                <span>Panel Admin</span>
+              </Link>
+            )}
+          </div>
+
+          <div className="px-2 pb-2 border-t border-border pt-1">
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-destructive hover:bg-destructive/10 transition-colors"
+            >
+              <LogOut className="size-4" />
+              <span>Se déconnecter</span>
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation();
   const { store, user, logout } = useAuth();
@@ -80,24 +208,21 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const navigate  = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const handleLogout = () => {
-    logout();
-    void navigate({ to: "/" });
-  };
-
   const subscription = store?.subscription;
   const daysLeft     = subscription
     ? Math.max(0, Math.ceil((new Date(subscription.expiresAt).getTime() - Date.now()) / 86400000))
     : 0;
   const isPro      = subscription?.plan === "pro";
-  const isExpired  = daysLeft <= 0;
-  const isAdmin    = user?.isAdmin;
+  const isExpired  = daysLeft <= 0 && !!store;
+  const isAdminUser = user?.role === "admin" || user?.role === "super_admin";
+
+  const closeMobile = () => setMobileOpen(false);
 
   const Sidebar = (
     <aside className="flex flex-col h-full bg-gradient-to-b from-[#1a1a2e] to-[#16213e] text-white">
       {/* Logo */}
       <div className="px-5 py-5 border-b border-white/10">
-        <Link to="/dashboard" className="flex items-center gap-2.5" onClick={() => setMobileOpen(false)}>
+        <Link to="/dashboard" className="flex items-center gap-2.5" onClick={closeMobile}>
           <div className="size-8 rounded-xl bg-gradient-to-br from-violet-500 to-violet-700 flex items-center justify-center shadow-lg shadow-violet-500/30">
             <StoreIcon className="size-4 text-white" />
           </div>
@@ -123,41 +248,48 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-4 overflow-y-auto">
-        <NavGroup title="Gestion" items={mainNav} location={location} />
-        <NavGroup title="Boutique" items={storeNav} location={location} />
-        <NavGroup title="Compte" items={settingsNav} location={location} />
-        {isAdmin && (
+        <NavGroup title="Gestion"   items={mainNav}  location={location} onNavigate={closeMobile} />
+        <NavGroup title="Boutique"  items={storeNav} location={location} onNavigate={closeMobile} />
+
+        {/* Admin section — visible only to admin roles */}
+        {isAdminUser && (
           <div>
             <p className="px-3 mb-1 text-[10px] uppercase tracking-[0.15em] font-semibold text-amber-300/60 select-none">
-              Super Admin
+              {user?.role === "super_admin" ? "Super Admin" : "Admin"}
             </p>
             <Link
               to="/admin"
+              onClick={closeMobile}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 location.pathname.startsWith("/admin")
                   ? "bg-amber-500/20 text-amber-300"
                   : "text-amber-300/60 hover:text-amber-300 hover:bg-amber-500/10"
               }`}
-              onClick={() => setMobileOpen(false)}
             >
-              <Shield className="size-4" />
+              <span className="size-7 rounded-lg flex items-center justify-center bg-amber-500/10">
+                <Shield className="size-4" />
+              </span>
               <span>Panel Admin</span>
             </Link>
           </div>
         )}
       </nav>
 
-      {/* Bottom */}
+      {/* Bottom — subscription badge + store link */}
       <div className="px-3 pb-4 border-t border-white/10 pt-3 space-y-2">
         {/* Subscription badge */}
         {store && (
-          <div className={`mx-2 rounded-xl p-3 border text-xs ${
-            isPro
-              ? "bg-violet-500/10 border-violet-500/30 text-violet-300"
-              : isExpired
-              ? "bg-red-500/10 border-red-500/30 text-red-300"
-              : "bg-amber-500/10 border-amber-500/30 text-amber-300"
-          }`}>
+          <Link
+            to="/dashboard/subscription"
+            onClick={closeMobile}
+            className={`block mx-2 rounded-xl p-3 border text-xs transition-opacity hover:opacity-80 ${
+              isPro
+                ? "bg-violet-500/10 border-violet-500/30 text-violet-300"
+                : isExpired
+                ? "bg-red-500/10 border-red-500/30 text-red-300"
+                : "bg-amber-500/10 border-amber-500/30 text-amber-300"
+            }`}
+          >
             <div className="flex items-center gap-2 mb-1">
               <span className={`size-1.5 rounded-full ${isPro ? "bg-violet-400" : isExpired ? "bg-red-400" : "bg-amber-400"}`} />
               <span className="font-semibold uppercase tracking-wide text-[10px]">
@@ -165,12 +297,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               </span>
             </div>
             <p className="text-white/50 text-[10px]">
-              {isExpired ? "Renouvelez votre plan" : `${daysLeft} jour${daysLeft > 1 ? "s" : ""} restant${daysLeft > 1 ? "s" : ""}`}
+              {isExpired ? "Renouveler le plan →" : `${daysLeft} jour${daysLeft > 1 ? "s" : ""} restant${daysLeft > 1 ? "s" : ""}`}
             </p>
-          </div>
+          </Link>
         )}
 
-        {/* View store + Logout */}
         {store && (
           <a
             href={`/store/${store.slug}`}
@@ -182,15 +313,15 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             Voir la boutique
           </a>
         )}
+
         <button
-          onClick={handleLogout}
+          onClick={() => { logout(); void navigate({ to: "/" }); }}
           className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-white/50 hover:text-red-300 hover:bg-red-500/10 transition-colors"
         >
           <LogOut className="size-3.5" />
           Se déconnecter
         </button>
 
-        {/* User info */}
         {user && (
           <div className="px-3 pt-2 border-t border-white/10 mt-2">
             <p className="text-xs font-semibold truncate">{user.fullName}</p>
@@ -211,10 +342,16 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       {/* Mobile sidebar overlay */}
       {mobileOpen && (
         <div className="fixed inset-0 z-50 flex md:hidden">
-          <div className="fixed inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />
+          <div className="fixed inset-0 bg-black/60" onClick={closeMobile} />
           <div className="relative w-64 h-full shadow-2xl">
             {Sidebar}
           </div>
+          <button
+            className="absolute top-4 left-[272px] text-white bg-white/10 rounded-full p-1.5"
+            onClick={closeMobile}
+          >
+            <X className="size-4" />
+          </button>
         </div>
       )}
 
@@ -237,7 +374,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             </p>
           </div>
 
-          {/* Right: actions */}
+          {/* Right actions */}
           <div className="ms-auto flex items-center gap-2">
             <NotificationBell />
             <LanguageSwitcher />
@@ -252,6 +389,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
                 Boutique
               </a>
             )}
+            <UserMenu />
           </div>
         </header>
 

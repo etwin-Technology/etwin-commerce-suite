@@ -29,6 +29,8 @@ import { Route as DashboardSubscriptionRouteImport } from './routes/dashboard.su
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminStoresRouteImport } from './routes/admin.stores'
 import { Route as AdminDomainsRouteImport } from './routes/admin.domains'
+import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
+import { Route as AdminPlansRouteImport } from './routes/admin.plans'
 
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
@@ -130,6 +132,16 @@ const AdminDomainsRoute = AdminDomainsRouteImport.update({
   path: '/domains',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminSettingsRoute = AdminSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPlansRoute = AdminPlansRouteImport.update({
+  id: '/plans',
+  path: '/plans',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -152,6 +164,8 @@ export interface FileRoutesByFullPath {
   '/admin/users': typeof AdminUsersRoute
   '/admin/stores': typeof AdminStoresRoute
   '/admin/domains': typeof AdminDomainsRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/plans': typeof AdminPlansRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -172,6 +186,8 @@ export interface FileRoutesByTo {
   '/admin/users': typeof AdminUsersRoute
   '/admin/stores': typeof AdminStoresRoute
   '/admin/domains': typeof AdminDomainsRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/plans': typeof AdminPlansRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -195,6 +211,8 @@ export interface FileRoutesById {
   '/admin/users': typeof AdminUsersRoute
   '/admin/stores': typeof AdminStoresRoute
   '/admin/domains': typeof AdminDomainsRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/plans': typeof AdminPlansRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -219,6 +237,8 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/admin/stores'
     | '/admin/domains'
+    | '/admin/settings'
+    | '/admin/plans'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -239,6 +259,8 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/admin/stores'
     | '/admin/domains'
+    | '/admin/settings'
+    | '/admin/plans'
   id:
     | '__root__'
     | '/'
@@ -261,6 +283,8 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/admin/stores'
     | '/admin/domains'
+    | '/admin/settings'
+    | '/admin/plans'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -415,6 +439,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminDomainsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/settings': {
+      id: '/admin/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AdminSettingsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/plans': {
+      id: '/admin/plans'
+      path: '/plans'
+      fullPath: '/admin/plans'
+      preLoaderRoute: typeof AdminPlansRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
@@ -451,6 +489,8 @@ interface AdminRouteChildren {
   AdminUsersRoute: typeof AdminUsersRoute
   AdminStoresRoute: typeof AdminStoresRoute
   AdminDomainsRoute: typeof AdminDomainsRoute
+  AdminSettingsRoute: typeof AdminSettingsRoute
+  AdminPlansRoute: typeof AdminPlansRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
@@ -458,6 +498,8 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminUsersRoute: AdminUsersRoute,
   AdminStoresRoute: AdminStoresRoute,
   AdminDomainsRoute: AdminDomainsRoute,
+  AdminSettingsRoute: AdminSettingsRoute,
+  AdminPlansRoute: AdminPlansRoute,
 }
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(

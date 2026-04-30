@@ -266,13 +266,13 @@ function CustomizePage() {
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
-                      value={(theme as Record<string, string>)[key]}
+                      value={(theme as unknown as Record<string, string>)[key]}
                       onChange={e => setTheme(t => ({ ...t, [key]: e.target.value }))}
                       className="size-9 rounded-lg border border-input cursor-pointer p-0.5 bg-transparent"
                     />
                     <input
                       type="text"
-                      value={(theme as Record<string, string>)[key]}
+                      value={(theme as unknown as Record<string, string>)[key]}
                       onChange={e => setTheme(t => ({ ...t, [key]: e.target.value }))}
                       className="flex-1 px-2 py-2 rounded-lg border border-input bg-background text-xs font-mono focus:outline-none"
                     />

@@ -66,11 +66,13 @@ function StorePage() {
   const logoUrl = store.header?.logoUrl ?? store.logoUrl;
   const menuLinks = store.header?.menuLinks ?? [];
   const announcement = store.header?.announcementBar && store.header?.announcementText;
+  const heroTitle = store.header?.announcementText;
+  const heroSub   = store.footer?.description;
   const footer   = store.footer;
   const socials  = footer?.socials ?? {};
 
   return (
-    <div className="min-h-dvh bg-background pb-24">
+    <div className="min-h-dvh bg-background pb-24" style={{ ["--store-primary" as string]: primary } as React.CSSProperties}>
       {/* Announcement bar */}
       {announcement && (
         <div className="text-center py-2 text-xs font-semibold text-white" style={{ backgroundColor: accent }}>
@@ -79,26 +81,33 @@ function StorePage() {
       )}
 
       {/* Header */}
-      <header className="sticky top-0 z-20 border-b border-border bg-background/90 backdrop-blur">
-        <div className="mx-auto max-w-6xl flex items-center justify-between px-4 sm:px-6 h-14">
+      <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur-md shadow-sm">
+        <div className="mx-auto max-w-6xl flex items-center justify-between px-4 sm:px-6 h-16">
           <div className="flex items-center gap-3 min-w-0">
-            {logoUrl && (
-              <img src={logoUrl} alt={store.name} className="h-8 w-auto object-contain shrink-0" />
+            {logoUrl ? (
+              <img src={logoUrl} alt={store.name} className="h-10 w-auto object-contain shrink-0" />
+            ) : (
+              <div
+                className="size-10 rounded-xl flex items-center justify-center text-white font-bold shrink-0"
+                style={{ backgroundColor: primary }}
+              >
+                {store.name.charAt(0).toUpperCase()}
+              </div>
             )}
             <div className="min-w-0">
               <p className="font-serif text-lg font-bold tracking-tight truncate">{store.name}</p>
               {store.city && (
                 <p className="text-[10px] text-muted-foreground inline-flex items-center gap-1">
-                  <MapPin className="size-3" /> {t("store.city", { city: store.city })}
+                  <MapPin className="size-3" /> {store.city}
                 </p>
               )}
             </div>
           </div>
           <div className="flex items-center gap-4">
             {menuLinks.length > 0 && (
-              <nav className="hidden sm:flex items-center gap-3">
+              <nav className="hidden sm:flex items-center gap-4">
                 {menuLinks.slice(0, 4).map((l, i) => (
-                  <a key={i} href={l.url} className="text-xs text-muted-foreground hover:text-foreground transition-colors">{l.label}</a>
+                  <a key={i} href={l.url} className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">{l.label}</a>
                 ))}
               </nav>
             )}
@@ -106,6 +115,21 @@ function StorePage() {
           </div>
         </div>
       </header>
+
+      {/* HERO BANNER */}
+      {(heroTitle || heroSub) && (
+        <section
+          className="relative overflow-hidden"
+          style={{
+            background: `linear-gradient(135deg, ${primary} 0%, ${primary}dd 60%, ${accent} 100%)`,
+          }}
+        >
+          <div className="mx-auto max-w-6xl px-4 sm:px-6 py-10 sm:py-14 text-center text-white">
+            {heroTitle && <h1 className="font-serif text-2xl sm:text-4xl font-bold tracking-tight">{heroTitle}</h1>}
+            {heroSub && <p className="mt-2 text-sm sm:text-base text-white/85 max-w-xl mx-auto">{heroSub}</p>}
+          </div>
+        </section>
+      )}
 
       {/* Trust bar */}
       <div className="bg-success/10 border-b border-success/20">

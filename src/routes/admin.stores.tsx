@@ -11,9 +11,9 @@ export const Route = createFileRoute("/admin/stores")({
 const MOCK: PaginatedResponse<AdminStore> = {
   total: 3, page: 1, pages: 1,
   items: [
-    { id: "s1", name: "Atlas Watches",   slug: "atlas-watches",   ownerEmail: "ahmed@demo.com", ownerName: "Ahmed Benali", plan: "pro",   expiresAt: "2026-05-01", active: true,  customDomain: "atlaswatches.ma", domainVerified: true,  orderCount: 42, productCount: 15, createdAt: "2026-04-01" },
-    { id: "s2", name: "Sara Cosmetics",  slug: "sara-cosmetics",  ownerEmail: "fatima@demo.com",ownerName: "Fatima Zohra", plan: "trial", expiresAt: "2026-04-19", active: true,  customDomain: null,             domainVerified: false, orderCount: 5,  productCount: 8,  createdAt: "2026-04-05" },
-    { id: "s3", name: "Karim Store",     slug: "karim-store",     ownerEmail: "karim@demo.com", ownerName: "Karim Tazi",   plan: "trial", expiresAt: "2026-03-29", active: false, customDomain: null,             domainVerified: false, orderCount: 0,  productCount: 2,  createdAt: "2026-03-15" },
+    { id: "s1", name: "Atlas Watches",   slug: "atlas-watches",   ownerEmail: "ahmed@demo.com", ownerName: "Ahmed Benali", ownerRole: "user",  plan: "pro",   expiresAt: "2026-05-01", active: true,  customDomain: "atlaswatches.ma", domainVerified: true,  orderCount: 42, productCount: 15, createdAt: "2026-04-01" },
+    { id: "s2", name: "Sara Cosmetics",  slug: "sara-cosmetics",  ownerEmail: "fatima@demo.com",ownerName: "Fatima Zohra", ownerRole: "user",  plan: "trial", expiresAt: "2026-04-19", active: true,  customDomain: null,             domainVerified: false, orderCount: 5,  productCount: 8,  createdAt: "2026-04-05" },
+    { id: "s3", name: "Karim Store",     slug: "karim-store",     ownerEmail: "karim@demo.com", ownerName: "Karim Tazi",   ownerRole: "user",  plan: "trial", expiresAt: "2026-03-29", active: false, customDomain: null,             domainVerified: false, orderCount: 0,  productCount: 2,  createdAt: "2026-03-15" },
   ],
 };
 

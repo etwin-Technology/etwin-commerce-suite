@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { useEffect, useState } from "react";
-import { Plus, Trash2, Pencil } from "lucide-react";
+import { Plus, Trash2, Pencil, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api/client";
 import type { Product, ProductStatus } from "@/lib/api/types";
+import { ImageUploader } from "@/components/ImageUploader";
 
 export const Route = createFileRoute("/dashboard/products")({
   component: ProductsPage,
@@ -14,7 +15,8 @@ const blank = (): Omit<Product, "id" | "tenantId" | "createdAt"> => ({
   name: "",
   description: "",
   price: 0,
-  image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=600&q=80",
+  image: "",
+  extraImages: [],
   stock: 0,
   status: "active" as ProductStatus,
 });
@@ -47,7 +49,7 @@ function ProductsPage() {
   const startEdit = (p: Product) => {
     setCreating(false);
     setEditing(p);
-    setDraft({ name: p.name, description: p.description, price: p.price, image: p.image, stock: p.stock, status: p.status });
+    setDraft({ name: p.name, description: p.description, price: p.price, image: p.image, extraImages: p.extraImages ?? [], stock: p.stock, status: p.status });
   };
   const cancel = () => {
     setCreating(false);
@@ -84,32 +86,64 @@ function ProductsPage() {
 
       {(creating || editing) && (
         <div className="mb-6 rounded-2xl border border-border bg-card p-6">
-          <div className="grid md:grid-cols-2 gap-4">
-            <Input label={t("products.name")} value={draft.name} onChange={(v) => setDraft({ ...draft, name: v })} />
-            <Input label={t("products.image")} value={draft.image} onChange={(v) => setDraft({ ...draft, image: v })} />
-            <NumberInput label={t("products.price")} value={draft.price} onChange={(v) => setDraft({ ...draft, price: v })} />
-            <NumberInput label={t("products.stock")} value={draft.stock} onChange={(v) => setDraft({ ...draft, stock: v })} integer />
-            <label className="block md:col-span-2">
-              <span className="text-xs font-medium mb-1.5 block">{t("products.description")}</span>
-              <textarea
-                value={draft.description}
-                onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-                rows={3}
-                className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-            </label>
-            <label className="block">
-              <span className="text-xs font-medium mb-1.5 block">{t("products.status")}</span>
-              <select
-                value={draft.status}
-                onChange={(e) => setDraft({ ...draft, status: e.target.value as ProductStatus })}
-                className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm"
-              >
-                <option value="active">{t("products.active")}</option>
-                <option value="draft">{t("products.draft")}</option>
-                <option value="archived">{t("products.archived")}</option>
-              </select>
-            </label>
+          <div className="grid md:grid-cols-[260px_1fr] gap-6">
+            {/* Images */}
+            <div>
+              <span className="text-xs font-medium mb-1.5 block">{t("products.image")}</span>
+              <ImageUploader value={draft.image || null} onChange={(url) => setDraft({ ...draft, image: url ?? "" })} aspect="square" label="Main image" />
+              <p className="text-[11px] text-muted-foreground mt-2 mb-1">Extra images (gallery)</p>
+              <div className="grid grid-cols-3 gap-2">
+                {(draft.extraImages ?? []).map((img, i) => (
+                  <div key={i} className="relative aspect-square rounded-lg overflow-hidden border border-border">
+                    <img src={img} alt="" className="size-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setDraft({ ...draft, extraImages: (draft.extraImages ?? []).filter((_, idx) => idx !== i) })}
+                      className="absolute top-1 end-1 size-6 rounded-full bg-foreground/70 text-background flex items-center justify-center"
+                      aria-label="Remove"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </div>
+                ))}
+                {(draft.extraImages?.length ?? 0) < 5 && (
+                  <ImageUploader
+                    value={null}
+                    onChange={(url) => url && setDraft({ ...draft, extraImages: [...(draft.extraImages ?? []), url] })}
+                    aspect="square"
+                    label="+"
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* Fields */}
+            <div className="grid sm:grid-cols-2 gap-4">
+              <Input label={t("products.name")} value={draft.name} onChange={(v) => setDraft({ ...draft, name: v })} />
+              <NumberInput label={t("products.price")} value={draft.price} onChange={(v) => setDraft({ ...draft, price: v })} />
+              <NumberInput label={t("products.stock")} value={draft.stock} onChange={(v) => setDraft({ ...draft, stock: v })} integer />
+              <label className="block">
+                <span className="text-xs font-medium mb-1.5 block">{t("products.status")}</span>
+                <select
+                  value={draft.status}
+                  onChange={(e) => setDraft({ ...draft, status: e.target.value as ProductStatus })}
+                  className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm"
+                >
+                  <option value="active">{t("products.active")}</option>
+                  <option value="draft">{t("products.draft")}</option>
+                  <option value="archived">{t("products.archived")}</option>
+                </select>
+              </label>
+              <label className="block sm:col-span-2">
+                <span className="text-xs font-medium mb-1.5 block">{t("products.description")}</span>
+                <textarea
+                  value={draft.description}
+                  onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+                  rows={4}
+                  className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </label>
+            </div>
           </div>
           <div className="mt-4 flex gap-2 justify-end">
             <button onClick={cancel} className="px-4 py-2 text-sm rounded-full border border-border hover:bg-surface-alt">
@@ -142,7 +176,7 @@ function ProductsPage() {
                     <span className="font-medium">{p.name}</span>
                   </div>
                 </td>
-                <td className="px-6 py-4 num font-medium">€{p.price.toFixed(2)}</td>
+                <td className="px-6 py-4 num font-medium">{p.price.toFixed(2)} MAD</td>
                 <td className="px-6 py-4 num">{p.stock}</td>
                 <td className="px-6 py-4">
                   <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full border border-border bg-background">

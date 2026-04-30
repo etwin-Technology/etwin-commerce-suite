@@ -18,19 +18,19 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as StoreSlugRouteImport } from './routes/store.$slug'
+import { Route as DashboardSubscriptionRouteImport } from './routes/dashboard.subscription'
 import { Route as DashboardSettingsRouteImport } from './routes/dashboard.settings'
 import { Route as DashboardProductsRouteImport } from './routes/dashboard.products'
 import { Route as DashboardOrdersRouteImport } from './routes/dashboard.orders'
 import { Route as DashboardLandingRouteImport } from './routes/dashboard.landing'
-import { Route as DashboardCustomersRouteImport } from './routes/dashboard.customers'
-import { Route as DashboardCustomizeRouteImport } from './routes/dashboard.customize'
 import { Route as DashboardDomainsRouteImport } from './routes/dashboard.domains'
-import { Route as DashboardSubscriptionRouteImport } from './routes/dashboard.subscription'
+import { Route as DashboardCustomizeRouteImport } from './routes/dashboard.customize'
+import { Route as DashboardCustomersRouteImport } from './routes/dashboard.customers'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminStoresRouteImport } from './routes/admin.stores'
-import { Route as AdminDomainsRouteImport } from './routes/admin.domains'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminPlansRouteImport } from './routes/admin.plans'
+import { Route as AdminDomainsRouteImport } from './routes/admin.domains'
 
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
@@ -77,6 +77,11 @@ const StoreSlugRoute = StoreSlugRouteImport.update({
   path: '/store/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardSubscriptionRoute = DashboardSubscriptionRouteImport.update({
+  id: '/subscription',
+  path: '/subscription',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -97,9 +102,9 @@ const DashboardLandingRoute = DashboardLandingRouteImport.update({
   path: '/landing',
   getParentRoute: () => DashboardRoute,
 } as any)
-const DashboardCustomersRoute = DashboardCustomersRouteImport.update({
-  id: '/customers',
-  path: '/customers',
+const DashboardDomainsRoute = DashboardDomainsRouteImport.update({
+  id: '/domains',
+  path: '/domains',
   getParentRoute: () => DashboardRoute,
 } as any)
 const DashboardCustomizeRoute = DashboardCustomizeRouteImport.update({
@@ -107,14 +112,9 @@ const DashboardCustomizeRoute = DashboardCustomizeRouteImport.update({
   path: '/customize',
   getParentRoute: () => DashboardRoute,
 } as any)
-const DashboardDomainsRoute = DashboardDomainsRouteImport.update({
-  id: '/domains',
-  path: '/domains',
-  getParentRoute: () => DashboardRoute,
-} as any)
-const DashboardSubscriptionRoute = DashboardSubscriptionRouteImport.update({
-  id: '/subscription',
-  path: '/subscription',
+const DashboardCustomersRoute = DashboardCustomersRouteImport.update({
+  id: '/customers',
+  path: '/customers',
   getParentRoute: () => DashboardRoute,
 } as any)
 const AdminUsersRoute = AdminUsersRouteImport.update({
@@ -127,11 +127,6 @@ const AdminStoresRoute = AdminStoresRouteImport.update({
   path: '/stores',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminDomainsRoute = AdminDomainsRouteImport.update({
-  id: '/domains',
-  path: '/domains',
-  getParentRoute: () => AdminRoute,
-} as any)
 const AdminSettingsRoute = AdminSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -142,155 +137,160 @@ const AdminPlansRoute = AdminPlansRouteImport.update({
   path: '/plans',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminDomainsRoute = AdminDomainsRouteImport.update({
+  id: '/domains',
+  path: '/domains',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
+  '/dashboard': typeof DashboardRouteWithChildren
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/register': typeof RegisterRoute
+  '/admin/domains': typeof AdminDomainsRoute
+  '/admin/plans': typeof AdminPlansRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/stores': typeof AdminStoresRoute
+  '/admin/users': typeof AdminUsersRoute
   '/dashboard/customers': typeof DashboardCustomersRoute
+  '/dashboard/customize': typeof DashboardCustomizeRoute
+  '/dashboard/domains': typeof DashboardDomainsRoute
   '/dashboard/landing': typeof DashboardLandingRoute
   '/dashboard/orders': typeof DashboardOrdersRoute
   '/dashboard/products': typeof DashboardProductsRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
-  '/dashboard/customize': typeof DashboardCustomizeRoute
-  '/dashboard/domains': typeof DashboardDomainsRoute
   '/dashboard/subscription': typeof DashboardSubscriptionRoute
   '/store/$slug': typeof StoreSlugRoute
-  '/dashboard/': typeof DashboardIndexRoute
   '/admin/': typeof AdminIndexRoute
-  '/admin/users': typeof AdminUsersRoute
-  '/admin/stores': typeof AdminStoresRoute
-  '/admin/domains': typeof AdminDomainsRoute
-  '/admin/settings': typeof AdminSettingsRoute
-  '/admin/plans': typeof AdminPlansRoute
+  '/dashboard/': typeof DashboardIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/register': typeof RegisterRoute
+  '/admin/domains': typeof AdminDomainsRoute
+  '/admin/plans': typeof AdminPlansRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/stores': typeof AdminStoresRoute
+  '/admin/users': typeof AdminUsersRoute
   '/dashboard/customers': typeof DashboardCustomersRoute
+  '/dashboard/customize': typeof DashboardCustomizeRoute
+  '/dashboard/domains': typeof DashboardDomainsRoute
   '/dashboard/landing': typeof DashboardLandingRoute
   '/dashboard/orders': typeof DashboardOrdersRoute
   '/dashboard/products': typeof DashboardProductsRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
-  '/dashboard/customize': typeof DashboardCustomizeRoute
-  '/dashboard/domains': typeof DashboardDomainsRoute
   '/dashboard/subscription': typeof DashboardSubscriptionRoute
   '/store/$slug': typeof StoreSlugRoute
-  '/dashboard': typeof DashboardIndexRoute
   '/admin': typeof AdminIndexRoute
-  '/admin/users': typeof AdminUsersRoute
-  '/admin/stores': typeof AdminStoresRoute
-  '/admin/domains': typeof AdminDomainsRoute
-  '/admin/settings': typeof AdminSettingsRoute
-  '/admin/plans': typeof AdminPlansRoute
+  '/dashboard': typeof DashboardIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
+  '/dashboard': typeof DashboardRouteWithChildren
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/register': typeof RegisterRoute
+  '/admin/domains': typeof AdminDomainsRoute
+  '/admin/plans': typeof AdminPlansRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/stores': typeof AdminStoresRoute
+  '/admin/users': typeof AdminUsersRoute
   '/dashboard/customers': typeof DashboardCustomersRoute
+  '/dashboard/customize': typeof DashboardCustomizeRoute
+  '/dashboard/domains': typeof DashboardDomainsRoute
   '/dashboard/landing': typeof DashboardLandingRoute
   '/dashboard/orders': typeof DashboardOrdersRoute
   '/dashboard/products': typeof DashboardProductsRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
-  '/dashboard/customize': typeof DashboardCustomizeRoute
-  '/dashboard/domains': typeof DashboardDomainsRoute
   '/dashboard/subscription': typeof DashboardSubscriptionRoute
   '/store/$slug': typeof StoreSlugRoute
-  '/dashboard/': typeof DashboardIndexRoute
   '/admin/': typeof AdminIndexRoute
-  '/admin/users': typeof AdminUsersRoute
-  '/admin/stores': typeof AdminStoresRoute
-  '/admin/domains': typeof AdminDomainsRoute
-  '/admin/settings': typeof AdminSettingsRoute
-  '/admin/plans': typeof AdminPlansRoute
+  '/dashboard/': typeof DashboardIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/dashboard'
     | '/admin'
+    | '/dashboard'
     | '/login'
     | '/onboarding'
     | '/register'
+    | '/admin/domains'
+    | '/admin/plans'
+    | '/admin/settings'
+    | '/admin/stores'
+    | '/admin/users'
     | '/dashboard/customers'
+    | '/dashboard/customize'
+    | '/dashboard/domains'
     | '/dashboard/landing'
     | '/dashboard/orders'
     | '/dashboard/products'
     | '/dashboard/settings'
-    | '/dashboard/customize'
-    | '/dashboard/domains'
     | '/dashboard/subscription'
     | '/store/$slug'
-    | '/dashboard/'
     | '/admin/'
-    | '/admin/users'
-    | '/admin/stores'
-    | '/admin/domains'
-    | '/admin/settings'
-    | '/admin/plans'
+    | '/dashboard/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/onboarding'
     | '/register'
+    | '/admin/domains'
+    | '/admin/plans'
+    | '/admin/settings'
+    | '/admin/stores'
+    | '/admin/users'
     | '/dashboard/customers'
+    | '/dashboard/customize'
+    | '/dashboard/domains'
     | '/dashboard/landing'
     | '/dashboard/orders'
     | '/dashboard/products'
     | '/dashboard/settings'
-    | '/dashboard/customize'
-    | '/dashboard/domains'
     | '/dashboard/subscription'
     | '/store/$slug'
-    | '/dashboard'
     | '/admin'
-    | '/admin/users'
-    | '/admin/stores'
-    | '/admin/domains'
-    | '/admin/settings'
-    | '/admin/plans'
+    | '/dashboard'
   id:
     | '__root__'
     | '/'
-    | '/dashboard'
     | '/admin'
+    | '/dashboard'
     | '/login'
     | '/onboarding'
     | '/register'
+    | '/admin/domains'
+    | '/admin/plans'
+    | '/admin/settings'
+    | '/admin/stores'
+    | '/admin/users'
     | '/dashboard/customers'
+    | '/dashboard/customize'
+    | '/dashboard/domains'
     | '/dashboard/landing'
     | '/dashboard/orders'
     | '/dashboard/products'
     | '/dashboard/settings'
-    | '/dashboard/customize'
-    | '/dashboard/domains'
     | '/dashboard/subscription'
     | '/store/$slug'
-    | '/dashboard/'
     | '/admin/'
-    | '/admin/users'
-    | '/admin/stores'
-    | '/admin/domains'
-    | '/admin/settings'
-    | '/admin/plans'
+    | '/dashboard/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  DashboardRoute: typeof DashboardRouteWithChildren
   AdminRoute: typeof AdminRouteWithChildren
+  DashboardRoute: typeof DashboardRouteWithChildren
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
   RegisterRoute: typeof RegisterRoute
@@ -362,6 +362,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StoreSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/subscription': {
+      id: '/dashboard/subscription'
+      path: '/subscription'
+      fullPath: '/dashboard/subscription'
+      preLoaderRoute: typeof DashboardSubscriptionRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/settings': {
       id: '/dashboard/settings'
       path: '/settings'
@@ -390,11 +397,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardLandingRouteImport
       parentRoute: typeof DashboardRoute
     }
-    '/dashboard/customers': {
-      id: '/dashboard/customers'
-      path: '/customers'
-      fullPath: '/dashboard/customers'
-      preLoaderRoute: typeof DashboardCustomersRouteImport
+    '/dashboard/domains': {
+      id: '/dashboard/domains'
+      path: '/domains'
+      fullPath: '/dashboard/domains'
+      preLoaderRoute: typeof DashboardDomainsRouteImport
       parentRoute: typeof DashboardRoute
     }
     '/dashboard/customize': {
@@ -404,18 +411,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardCustomizeRouteImport
       parentRoute: typeof DashboardRoute
     }
-    '/dashboard/domains': {
-      id: '/dashboard/domains'
-      path: '/domains'
-      fullPath: '/dashboard/domains'
-      preLoaderRoute: typeof DashboardDomainsRouteImport
-      parentRoute: typeof DashboardRoute
-    }
-    '/dashboard/subscription': {
-      id: '/dashboard/subscription'
-      path: '/subscription'
-      fullPath: '/dashboard/subscription'
-      preLoaderRoute: typeof DashboardSubscriptionRouteImport
+    '/dashboard/customers': {
+      id: '/dashboard/customers'
+      path: '/customers'
+      fullPath: '/dashboard/customers'
+      preLoaderRoute: typeof DashboardCustomersRouteImport
       parentRoute: typeof DashboardRoute
     }
     '/admin/users': {
@@ -432,13 +432,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminStoresRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/domains': {
-      id: '/admin/domains'
-      path: '/domains'
-      fullPath: '/admin/domains'
-      preLoaderRoute: typeof AdminDomainsRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/admin/settings': {
       id: '/admin/settings'
       path: '/settings'
@@ -453,29 +446,56 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminPlansRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/domains': {
+      id: '/admin/domains'
+      path: '/domains'
+      fullPath: '/admin/domains'
+      preLoaderRoute: typeof AdminDomainsRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
+interface AdminRouteChildren {
+  AdminDomainsRoute: typeof AdminDomainsRoute
+  AdminPlansRoute: typeof AdminPlansRoute
+  AdminSettingsRoute: typeof AdminSettingsRoute
+  AdminStoresRoute: typeof AdminStoresRoute
+  AdminUsersRoute: typeof AdminUsersRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminDomainsRoute: AdminDomainsRoute,
+  AdminPlansRoute: AdminPlansRoute,
+  AdminSettingsRoute: AdminSettingsRoute,
+  AdminStoresRoute: AdminStoresRoute,
+  AdminUsersRoute: AdminUsersRoute,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
 interface DashboardRouteChildren {
   DashboardCustomersRoute: typeof DashboardCustomersRoute
+  DashboardCustomizeRoute: typeof DashboardCustomizeRoute
+  DashboardDomainsRoute: typeof DashboardDomainsRoute
   DashboardLandingRoute: typeof DashboardLandingRoute
   DashboardOrdersRoute: typeof DashboardOrdersRoute
   DashboardProductsRoute: typeof DashboardProductsRoute
   DashboardSettingsRoute: typeof DashboardSettingsRoute
-  DashboardCustomizeRoute: typeof DashboardCustomizeRoute
-  DashboardDomainsRoute: typeof DashboardDomainsRoute
   DashboardSubscriptionRoute: typeof DashboardSubscriptionRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
 }
 
 const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardCustomersRoute: DashboardCustomersRoute,
+  DashboardCustomizeRoute: DashboardCustomizeRoute,
+  DashboardDomainsRoute: DashboardDomainsRoute,
   DashboardLandingRoute: DashboardLandingRoute,
   DashboardOrdersRoute: DashboardOrdersRoute,
   DashboardProductsRoute: DashboardProductsRoute,
   DashboardSettingsRoute: DashboardSettingsRoute,
-  DashboardCustomizeRoute: DashboardCustomizeRoute,
-  DashboardDomainsRoute: DashboardDomainsRoute,
   DashboardSubscriptionRoute: DashboardSubscriptionRoute,
   DashboardIndexRoute: DashboardIndexRoute,
 }
@@ -484,32 +504,10 @@ const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
   DashboardRouteChildren,
 )
 
-interface AdminRouteChildren {
-  AdminIndexRoute: typeof AdminIndexRoute
-  AdminUsersRoute: typeof AdminUsersRoute
-  AdminStoresRoute: typeof AdminStoresRoute
-  AdminDomainsRoute: typeof AdminDomainsRoute
-  AdminSettingsRoute: typeof AdminSettingsRoute
-  AdminPlansRoute: typeof AdminPlansRoute
-}
-
-const AdminRouteChildren: AdminRouteChildren = {
-  AdminIndexRoute: AdminIndexRoute,
-  AdminUsersRoute: AdminUsersRoute,
-  AdminStoresRoute: AdminStoresRoute,
-  AdminDomainsRoute: AdminDomainsRoute,
-  AdminSettingsRoute: AdminSettingsRoute,
-  AdminPlansRoute: AdminPlansRoute,
-}
-
-const AdminRouteWithChildren = AdminRoute._addFileChildren(
-  AdminRouteChildren,
-)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  DashboardRoute: DashboardRouteWithChildren,
   AdminRoute: AdminRouteWithChildren,
+  DashboardRoute: DashboardRouteWithChildren,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
   RegisterRoute: RegisterRoute,

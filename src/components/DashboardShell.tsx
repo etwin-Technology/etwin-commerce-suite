@@ -27,9 +27,9 @@ const mainNav: NavItem[] = [
 ];
 
 const storeNav: NavItem[] = [
-  { to: "/dashboard/landing",   key: "landing",    icon: LayoutTemplate,  label: "Page boutique" },
-  { to: "/dashboard/customize", key: "customize",  icon: Palette,         label: "Personnaliser", badge: "NEW" },
-  { to: "/dashboard/domains",   key: "domains",    icon: Globe,           label: "Domaine" },
+  { to: "/dashboard/storefront", key: "storefront", icon: LayoutTemplate,  label: "Ma boutique",   badge: "NEW" },
+  { to: "/dashboard/customize",  key: "customize",  icon: Palette,         label: "Personnaliser" },
+  { to: "/dashboard/domains",    key: "domains",    icon: Globe,           label: "Domaine" },
 ];
 
 function NavGroup({ title, items, location, onNavigate }: {

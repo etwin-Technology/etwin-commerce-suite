@@ -18,6 +18,7 @@ require __DIR__ . '/../controllers/NotificationController.php';
 require __DIR__ . '/../controllers/DomainController.php';
 require __DIR__ . '/../controllers/SubscriptionController.php';
 require __DIR__ . '/../controllers/AdminController.php';
+require __DIR__ . '/../controllers/UploadController.php';
 
 set_exception_handler(function (Throwable $e) {
     error_log('[etwin] ' . $e->getMessage() . "\n" . $e->getTraceAsString());
@@ -115,7 +116,10 @@ if (($p = route('PATCH', $method, '/api/admin/plan-features/{feature}', $path)) 
 // ── PUBLIC settings (for landing page) ───────────────────────────────────────
 if (route('GET', $method, '/api/public/settings', $path) !== false) AdminController::publicSettings();
 
+// ── UPLOADS ───────────────────────────────────────────────────────────────────
+if (route('POST', $method, '/api/upload/image', $path) !== false) UploadController::image();
+
 // ── HEALTH ────────────────────────────────────────────────────────────────────
-if (route('GET', $method, '/api/health', $path) !== false) Http::json(['ok' => true, 'service' => 'etwin-commerce-api', 'version' => '3.0']);
+if (route('GET', $method, '/api/health', $path) !== false) Http::json(['ok' => true, 'service' => 'etwin-commerce-api', 'version' => '3.1']);
 
 Http::fail('Not found', 404);

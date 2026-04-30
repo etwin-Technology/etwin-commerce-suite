@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, Link, useLocation, useNavigate } from "@tanstack/react-router";
 import {
   BarChart3, Users, Store, Globe, LogOut, Shield, LayoutDashboard,
-  Settings, Sliders,
+  Settings, Sliders, LayoutTemplate,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useEffect } from "react";
@@ -15,6 +15,7 @@ const adminNav = [
   { to: "/admin/users",    icon: Users,           label: "Utilisateurs",    superAdminOnly: false },
   { to: "/admin/stores",   icon: Store,           label: "Boutiques",       superAdminOnly: false },
   { to: "/admin/domains",  icon: Globe,           label: "Domaines",        superAdminOnly: false },
+  { to: "/admin/landing",  icon: LayoutTemplate,  label: "Page d'accueil",  superAdminOnly: true  },
   { to: "/admin/settings", icon: Settings,        label: "Paramètres",      superAdminOnly: true  },
   { to: "/admin/plans",    icon: Sliders,         label: "Plans & Accès",   superAdminOnly: true  },
 ];

@@ -19,6 +19,7 @@ import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as StoreSlugRouteImport } from './routes/store.$slug'
 import { Route as DashboardSubscriptionRouteImport } from './routes/dashboard.subscription'
+import { Route as DashboardStorefrontRouteImport } from './routes/dashboard.storefront'
 import { Route as DashboardSettingsRouteImport } from './routes/dashboard.settings'
 import { Route as DashboardProductsRouteImport } from './routes/dashboard.products'
 import { Route as DashboardOrdersRouteImport } from './routes/dashboard.orders'
@@ -80,6 +81,11 @@ const StoreSlugRoute = StoreSlugRouteImport.update({
 const DashboardSubscriptionRoute = DashboardSubscriptionRouteImport.update({
   id: '/subscription',
   path: '/subscription',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardStorefrontRoute = DashboardStorefrontRouteImport.update({
+  id: '/storefront',
+  path: '/storefront',
   getParentRoute: () => DashboardRoute,
 } as any)
 const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
@@ -162,6 +168,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/orders': typeof DashboardOrdersRoute
   '/dashboard/products': typeof DashboardProductsRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/storefront': typeof DashboardStorefrontRoute
   '/dashboard/subscription': typeof DashboardSubscriptionRoute
   '/store/$slug': typeof StoreSlugRoute
   '/admin/': typeof AdminIndexRoute
@@ -184,6 +191,7 @@ export interface FileRoutesByTo {
   '/dashboard/orders': typeof DashboardOrdersRoute
   '/dashboard/products': typeof DashboardProductsRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/storefront': typeof DashboardStorefrontRoute
   '/dashboard/subscription': typeof DashboardSubscriptionRoute
   '/store/$slug': typeof StoreSlugRoute
   '/admin': typeof AdminIndexRoute
@@ -209,6 +217,7 @@ export interface FileRoutesById {
   '/dashboard/orders': typeof DashboardOrdersRoute
   '/dashboard/products': typeof DashboardProductsRoute
   '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/storefront': typeof DashboardStorefrontRoute
   '/dashboard/subscription': typeof DashboardSubscriptionRoute
   '/store/$slug': typeof StoreSlugRoute
   '/admin/': typeof AdminIndexRoute
@@ -235,6 +244,7 @@ export interface FileRouteTypes {
     | '/dashboard/orders'
     | '/dashboard/products'
     | '/dashboard/settings'
+    | '/dashboard/storefront'
     | '/dashboard/subscription'
     | '/store/$slug'
     | '/admin/'
@@ -257,6 +267,7 @@ export interface FileRouteTypes {
     | '/dashboard/orders'
     | '/dashboard/products'
     | '/dashboard/settings'
+    | '/dashboard/storefront'
     | '/dashboard/subscription'
     | '/store/$slug'
     | '/admin'
@@ -281,6 +292,7 @@ export interface FileRouteTypes {
     | '/dashboard/orders'
     | '/dashboard/products'
     | '/dashboard/settings'
+    | '/dashboard/storefront'
     | '/dashboard/subscription'
     | '/store/$slug'
     | '/admin/'
@@ -367,6 +379,13 @@ declare module '@tanstack/react-router' {
       path: '/subscription'
       fullPath: '/dashboard/subscription'
       preLoaderRoute: typeof DashboardSubscriptionRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/storefront': {
+      id: '/dashboard/storefront'
+      path: '/storefront'
+      fullPath: '/dashboard/storefront'
+      preLoaderRoute: typeof DashboardStorefrontRouteImport
       parentRoute: typeof DashboardRoute
     }
     '/dashboard/settings': {
@@ -484,6 +503,7 @@ interface DashboardRouteChildren {
   DashboardOrdersRoute: typeof DashboardOrdersRoute
   DashboardProductsRoute: typeof DashboardProductsRoute
   DashboardSettingsRoute: typeof DashboardSettingsRoute
+  DashboardStorefrontRoute: typeof DashboardStorefrontRoute
   DashboardSubscriptionRoute: typeof DashboardSubscriptionRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
 }
@@ -496,6 +516,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardOrdersRoute: DashboardOrdersRoute,
   DashboardProductsRoute: DashboardProductsRoute,
   DashboardSettingsRoute: DashboardSettingsRoute,
+  DashboardStorefrontRoute: DashboardStorefrontRoute,
   DashboardSubscriptionRoute: DashboardSubscriptionRoute,
   DashboardIndexRoute: DashboardIndexRoute,
 }

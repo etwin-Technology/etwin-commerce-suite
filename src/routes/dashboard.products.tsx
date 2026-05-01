@@ -214,7 +214,7 @@ function ProductsPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {items.map((p) => (
+            {filtered.map((p) => (
               <tr key={p.id} className="hover:bg-surface-alt/50">
                 <td className="px-6 py-4">
                   <div className="flex items-center gap-3">

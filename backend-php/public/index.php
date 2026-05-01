@@ -66,10 +66,15 @@ if (route('GET',  $method, '/api/orders',                              $path) !=
 if (($p = route('POST',  $method, '/api/orders/{id}/confirm',          $path)) !== false) OrderController::confirm($p['id']);
 if (($p = route('POST',  $method, '/api/orders/{id}/ship',             $path)) !== false) OrderController::ship($p['id']);
 if (($p = route('PATCH', $method, '/api/orders/{id}/status',           $path)) !== false) OrderController::updateStatus($p['id']);
+if (($p = route('PATCH', $method, '/api/orders/{id}',                  $path)) !== false) OrderController::update($p['id']);
+if (($p = route('DELETE',$method, '/api/orders/{id}',                  $path)) !== false) OrderController::delete($p['id']);
 if (($p = route('POST',  $method, '/api/public/stores/{slug}/orders',  $path)) !== false) OrderController::createFromStore($p['slug']);
 
 // ── CUSTOMERS ─────────────────────────────────────────────────────────────────
-if (route('GET', $method, '/api/customers', $path) !== false) CustomerController::list();
+if (route('GET',  $method, '/api/customers', $path) !== false) CustomerController::list();
+if (route('POST', $method, '/api/customers', $path) !== false) CustomerController::create();
+if (($p = route('PATCH',  $method, '/api/customers/{id}', $path)) !== false) CustomerController::update($p['id']);
+if (($p = route('DELETE', $method, '/api/customers/{id}', $path)) !== false) CustomerController::delete($p['id']);
 
 // ── DASHBOARD ─────────────────────────────────────────────────────────────────
 if (route('GET', $method, '/api/dashboard/stats', $path) !== false) DashboardController::stats();

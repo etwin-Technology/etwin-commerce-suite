@@ -170,6 +170,43 @@ class OrderController {
         self::returnOrder($id, $tid);
     }
 
+    public static function update(string $id): void {
+        $ctx = Http::ownedTenant();
+        $tid = $ctx['store']['id'];
+        $b   = Http::body();
+        $map = [
+            'customerName'    => 'customer_name',
+            'customerPhone'   => 'customer_phone',
+            'customerAddress' => 'customer_address',
+            'city'            => 'city',
+            'status'          => 'status',
+            'notes'           => 'notes',
+        ];
+        $fields = []; $vals = [];
+        foreach ($map as $k => $col) {
+            if (array_key_exists($k, $b)) {
+                if ($k === 'status' && !in_array($b[$k], ['pending','paid','shipped'], true)) {
+                    Http::fail('Invalid status', 422);
+                }
+                $fields[] = "$col = ?";
+                $vals[]   = $b[$k];
+            }
+        }
+        if (!$fields) Http::fail('Nothing to update', 400);
+        $vals[] = $id; $vals[] = $tid;
+        DB::pdo()->prepare('UPDATE orders SET ' . implode(',', $fields) . ' WHERE id = ? AND tenant_id = ?')
+            ->execute($vals);
+        self::returnOrder($id, $tid);
+    }
+
+    public static function delete(string $id): void {
+        $ctx = Http::ownedTenant();
+        DB::pdo()->prepare('DELETE FROM orders WHERE id = ? AND tenant_id = ?')
+            ->execute([$id, $ctx['store']['id']]);
+        http_response_code(204);
+        exit;
+    }
+
     private static function returnOrder(string $id, string $tid): void {
         $st = DB::pdo()->prepare('SELECT * FROM orders WHERE id = ? AND tenant_id = ?');
         $st->execute([$id, $tid]);

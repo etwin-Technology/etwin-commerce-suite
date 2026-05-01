@@ -153,11 +153,37 @@ export const api = {
   updateOrderStatus: (id: string, status: string): Promise<Order> =>
     request(`/api/orders/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
 
+  // ─── Orders extras ───────────────────────────────────────────────────────
+  updateOrder: (tenantId: string, id: string, patch: Partial<Order>): Promise<Order> =>
+    useMockApi()
+      ? mockApi.updateOrder(tenantId, id, patch)
+      : request(`/api/orders/${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
+
+  deleteOrder: (tenantId: string, id: string): Promise<void> =>
+    useMockApi()
+      ? mockApi.deleteOrder(tenantId, id)
+      : request(`/api/orders/${id}`, { method: "DELETE" }),
+
   // ─── Customers ──────────────────────────────────────────────────────────
   listCustomers: (tenantId: string): Promise<Customer[]> =>
     useMockApi()
       ? mockApi.listCustomers(tenantId)
       : request(`/api/customers`),
+
+  createCustomer: (tenantId: string, input: Omit<Customer, "id" | "tenantId" | "ordersCount" | "totalSpent">): Promise<Customer> =>
+    useMockApi()
+      ? mockApi.createCustomer(tenantId, input)
+      : request(`/api/customers`, { method: "POST", body: JSON.stringify(input) }),
+
+  updateCustomer: (tenantId: string, id: string, patch: Partial<Customer>): Promise<Customer> =>
+    useMockApi()
+      ? mockApi.updateCustomer(tenantId, id, patch)
+      : request(`/api/customers/${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
+
+  deleteCustomer: (tenantId: string, id: string): Promise<void> =>
+    useMockApi()
+      ? mockApi.deleteCustomer(tenantId, id)
+      : request(`/api/customers/${id}`, { method: "DELETE" }),
 
   // ─── Dashboard ──────────────────────────────────────────────────────────
   dashboardStats: (tenantId: string): Promise<DashboardStats> =>

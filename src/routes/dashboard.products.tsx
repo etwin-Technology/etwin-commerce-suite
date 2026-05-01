@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus, Trash2, Pencil, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api/client";
 import type { Product, ProductStatus } from "@/lib/api/types";
 import { ImageUploader } from "@/components/ImageUploader";
+import { DataToolbar } from "@/components/DataToolbar";
 
 export const Route = createFileRoute("/dashboard/products")({
   component: ProductsPage,
@@ -24,11 +25,27 @@ const blank = (): Omit<Product, "id" | "tenantId" | "createdAt"> => ({
 function ProductsPage() {
   const { t } = useTranslation();
   const { store } = useAuth();
-  const [items, setItems] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState<Product | null>(null);
+  const [items, setItems]       = useState<Product[]>([]);
+  const [loading, setLoading]   = useState(true);
+  const [editing, setEditing]   = useState<Product | null>(null);
   const [creating, setCreating] = useState(false);
-  const [draft, setDraft] = useState<Omit<Product, "id" | "tenantId" | "createdAt">>(blank());
+  const [draft, setDraft]       = useState<Omit<Product, "id" | "tenantId" | "createdAt">>(blank());
+  const [search, setSearch]     = useState("");
+  const [status, setStatus]     = useState<string>("");
+  const [stockFilter, setStock] = useState<string>("");
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return items
+      .filter((p) => !status || p.status === status)
+      .filter((p) => {
+        if (stockFilter === "out")  return p.stock === 0;
+        if (stockFilter === "low")  return p.stock > 0 && p.stock <= 5;
+        if (stockFilter === "in")   return p.stock > 5;
+        return true;
+      })
+      .filter((p) => !q || p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q));
+  }, [items, search, status, stockFilter]);
 
   const refresh = () => {
     if (!store) return;
@@ -83,6 +100,35 @@ function ProductsPage() {
           {t("products.newProduct")}
         </button>
       </div>
+
+      <DataToolbar
+        search={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Rechercher un produit…"
+        chips={[
+          {
+            label: "Statut",
+            value: status,
+            onChange: setStatus,
+            options: [
+              { value: "active",   label: t("products.active") },
+              { value: "draft",    label: t("products.draft") },
+              { value: "archived", label: t("products.archived") },
+            ],
+          },
+          {
+            label: "Stock",
+            value: stockFilter,
+            onChange: setStock,
+            options: [
+              { value: "in",  label: "En stock" },
+              { value: "low", label: "Stock faible" },
+              { value: "out", label: "Rupture" },
+            ],
+          },
+        ]}
+        count={{ filtered: filtered.length, total: items.length }}
+      />
 
       {(creating || editing) && (
         <div className="mb-6 rounded-2xl border border-border bg-card p-6">

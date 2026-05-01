@@ -243,8 +243,10 @@ function ProductsPage() {
             ))}
           </tbody>
         </table>
-        {!loading && items.length === 0 && (
-          <p className="text-sm text-muted-foreground py-12 text-center">{t("products.empty")}</p>
+        {!loading && filtered.length === 0 && (
+          <p className="text-sm text-muted-foreground py-12 text-center">
+            {items.length === 0 ? t("products.empty") : "Aucun résultat avec ces filtres."}
+          </p>
         )}
       </div>
     </div>

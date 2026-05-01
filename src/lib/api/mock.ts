@@ -495,10 +495,61 @@ export const mockApi = {
     return db.orders[idx];
   },
 
+  async updateOrder(tenantId: string, id: string, patch: Partial<Order>): Promise<Order> {
+    await sleep(120);
+    const db  = load();
+    const idx = db.orders.findIndex((o) => o.id === id && o.tenantId === tenantId);
+    if (idx < 0) throw new Error("Commande introuvable");
+    db.orders[idx] = { ...db.orders[idx], ...patch };
+    persist(db);
+    return db.orders[idx];
+  },
+
+  async deleteOrder(tenantId: string, id: string): Promise<void> {
+    await sleep(120);
+    const db = load();
+    db.orders = db.orders.filter((o) => !(o.id === id && o.tenantId === tenantId));
+    persist(db);
+  },
+
   // ── Customers ──────────────────────────────────────────────────────────────
   async listCustomers(tenantId: string): Promise<Customer[]> {
     await sleep(100);
     return load().customers.filter((c) => c.tenantId === tenantId);
+  },
+
+  async createCustomer(tenantId: string, input: Omit<Customer, "id" | "tenantId" | "ordersCount" | "totalSpent">): Promise<Customer> {
+    await sleep(150);
+    const db  = load();
+    const customer: Customer = {
+      id: `c-${Date.now()}`,
+      tenantId,
+      name: input.name,
+      phone: input.phone,
+      address: input.address,
+      ordersCount: 0,
+      totalSpent: 0,
+    };
+    db.customers.push(customer);
+    persist(db);
+    return customer;
+  },
+
+  async updateCustomer(tenantId: string, id: string, patch: Partial<Customer>): Promise<Customer> {
+    await sleep(150);
+    const db  = load();
+    const idx = db.customers.findIndex((c) => c.id === id && c.tenantId === tenantId);
+    if (idx < 0) throw new Error("Client introuvable");
+    db.customers[idx] = { ...db.customers[idx], ...patch };
+    persist(db);
+    return db.customers[idx];
+  },
+
+  async deleteCustomer(tenantId: string, id: string): Promise<void> {
+    await sleep(120);
+    const db = load();
+    db.customers = db.customers.filter((c) => !(c.id === id && c.tenantId === tenantId));
+    persist(db);
   },
 
   // ── Dashboard ──────────────────────────────────────────────────────────────

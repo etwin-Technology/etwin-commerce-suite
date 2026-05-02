@@ -1,8 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Search, Crown, Clock, AlertCircle, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
-import { api, useMockApi } from "@/lib/api/client";
+import { Search, Crown, Clock, AlertCircle, ChevronLeft, ChevronRight, RefreshCw, Ban, Play, UserCheck } from "lucide-react";
+import { api, useMockApi, getAuthToken, getTenantId, setTenantId } from "@/lib/api/client";
 import type { AdminStore, PaginatedResponse } from "@/lib/api/types";
+import { useAuth } from "@/lib/auth";
+import { setImpersonation } from "@/lib/impersonate";
 
 export const Route = createFileRoute("/admin/stores")({
   component: AdminStoresPage,
@@ -19,6 +21,8 @@ const MOCK: PaginatedResponse<AdminStore> = {
 
 function AdminStoresPage() {
   const isMock    = useMockApi();
+  const { user, store: currentStore, refreshStore } = useAuth();
+  const navigate  = useNavigate();
   const [data, setData]         = useState<PaginatedResponse<AdminStore> | null>(null);
   const [loading, setLoading]   = useState(true);
   const [q, setQ]               = useState("");
@@ -28,6 +32,8 @@ function AdminStoresPage() {
   const [planModal, setPlanModal] = useState<AdminStore | null>(null);
   const [newPlan, setNewPlan]   = useState<"pro" | "trial">("pro");
   const [months, setMonths]     = useState(1);
+
+  const isSuperAdmin = user?.role === "super_admin";
 
   const load = () => {
     setLoading(true);

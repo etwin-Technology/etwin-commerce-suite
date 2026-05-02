@@ -18,6 +18,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as StoreSlugRouteImport } from './routes/store.$slug'
+import { Route as DashboardTeamRouteImport } from './routes/dashboard.team'
 import { Route as DashboardSubscriptionRouteImport } from './routes/dashboard.subscription'
 import { Route as DashboardStorefrontRouteImport } from './routes/dashboard.storefront'
 import { Route as DashboardSettingsRouteImport } from './routes/dashboard.settings'
@@ -77,6 +78,11 @@ const StoreSlugRoute = StoreSlugRouteImport.update({
   id: '/store/$slug',
   path: '/store/$slug',
   getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardTeamRoute = DashboardTeamRouteImport.update({
+  id: '/team',
+  path: '/team',
+  getParentRoute: () => DashboardRoute,
 } as any)
 const DashboardSubscriptionRoute = DashboardSubscriptionRouteImport.update({
   id: '/subscription',
@@ -170,6 +176,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/storefront': typeof DashboardStorefrontRoute
   '/dashboard/subscription': typeof DashboardSubscriptionRoute
+  '/dashboard/team': typeof DashboardTeamRoute
   '/store/$slug': typeof StoreSlugRoute
   '/admin/': typeof AdminIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
@@ -193,6 +200,7 @@ export interface FileRoutesByTo {
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/storefront': typeof DashboardStorefrontRoute
   '/dashboard/subscription': typeof DashboardSubscriptionRoute
+  '/dashboard/team': typeof DashboardTeamRoute
   '/store/$slug': typeof StoreSlugRoute
   '/admin': typeof AdminIndexRoute
   '/dashboard': typeof DashboardIndexRoute
@@ -219,6 +227,7 @@ export interface FileRoutesById {
   '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/storefront': typeof DashboardStorefrontRoute
   '/dashboard/subscription': typeof DashboardSubscriptionRoute
+  '/dashboard/team': typeof DashboardTeamRoute
   '/store/$slug': typeof StoreSlugRoute
   '/admin/': typeof AdminIndexRoute
   '/dashboard/': typeof DashboardIndexRoute
@@ -246,6 +255,7 @@ export interface FileRouteTypes {
     | '/dashboard/settings'
     | '/dashboard/storefront'
     | '/dashboard/subscription'
+    | '/dashboard/team'
     | '/store/$slug'
     | '/admin/'
     | '/dashboard/'
@@ -269,6 +279,7 @@ export interface FileRouteTypes {
     | '/dashboard/settings'
     | '/dashboard/storefront'
     | '/dashboard/subscription'
+    | '/dashboard/team'
     | '/store/$slug'
     | '/admin'
     | '/dashboard'
@@ -294,6 +305,7 @@ export interface FileRouteTypes {
     | '/dashboard/settings'
     | '/dashboard/storefront'
     | '/dashboard/subscription'
+    | '/dashboard/team'
     | '/store/$slug'
     | '/admin/'
     | '/dashboard/'
@@ -373,6 +385,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/store/$slug'
       preLoaderRoute: typeof StoreSlugRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/team': {
+      id: '/dashboard/team'
+      path: '/team'
+      fullPath: '/dashboard/team'
+      preLoaderRoute: typeof DashboardTeamRouteImport
+      parentRoute: typeof DashboardRoute
     }
     '/dashboard/subscription': {
       id: '/dashboard/subscription'
@@ -506,6 +525,7 @@ interface DashboardRouteChildren {
   DashboardSettingsRoute: typeof DashboardSettingsRoute
   DashboardStorefrontRoute: typeof DashboardStorefrontRoute
   DashboardSubscriptionRoute: typeof DashboardSubscriptionRoute
+  DashboardTeamRoute: typeof DashboardTeamRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
 }
 
@@ -518,6 +538,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardSettingsRoute: DashboardSettingsRoute,
   DashboardStorefrontRoute: DashboardStorefrontRoute,
   DashboardSubscriptionRoute: DashboardSubscriptionRoute,
+  DashboardTeamRoute: DashboardTeamRoute,
   DashboardIndexRoute: DashboardIndexRoute,
 }
 

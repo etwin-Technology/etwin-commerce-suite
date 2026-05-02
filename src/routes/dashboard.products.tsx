@@ -87,21 +87,117 @@ function ProductsPage() {
     refresh();
   };
 
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+  const [importMsg, setImportMsg] = useState<string | null>(null);
+
+  const handleImport = async (file: File) => {
+    if (!store) return;
+    setImporting(true);
+    setImportMsg(null);
+    try {
+      const { ok, errors } = await parseProductsFile(file);
+      const lim = productLimit(store, items.length);
+      const room = lim.limit == null ? ok.length : Math.max(0, lim.limit - items.length);
+      const toImport = ok.slice(0, room);
+      let successCount = 0;
+      for (const p of toImport) {
+        try { await api.createProduct(store.id, p); successCount++; } catch { /* skip */ }
+      }
+      const skipped = ok.length - successCount;
+      setImportMsg(
+        `${successCount} produit(s) importé(s).` +
+        (skipped > 0 ? ` ${skipped} ignoré(s) (limite du plan).` : "") +
+        (errors.length > 0 ? ` ${errors.length} ligne(s) invalide(s).` : ""),
+      );
+      refresh();
+    } catch (e) {
+      setImportMsg(e instanceof Error ? e.message : "Erreur d'import");
+    } finally {
+      setImporting(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
+  const limit = productLimit(store, items.length);
+
   return (
     <div className="max-w-7xl mx-auto">
-      <div className="flex items-end justify-between gap-4 mb-8">
+      <div className="flex items-end justify-between gap-4 mb-6 flex-wrap">
         <div>
           <h1 className="font-serif text-4xl font-bold">{t("products.title")}</h1>
           <p className="text-muted-foreground mt-1">{t("products.subtitle")}</p>
         </div>
-        <button
-          onClick={startCreate}
-          className="inline-flex items-center gap-2 bg-primary text-primary-foreground rounded-full px-4 py-2 text-sm font-medium hover:bg-primary/90"
-        >
-          <Plus className="size-4" />
-          {t("products.newProduct")}
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => exportProducts(items, store?.slug ?? "store")}
+            disabled={items.length === 0}
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-2 text-sm font-medium hover:bg-accent disabled:opacity-50"
+          >
+            <FileSpreadsheet className="size-4 text-emerald-600" />
+            Exporter
+          </button>
+          <button
+            onClick={downloadProductTemplate}
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-2 text-sm font-medium hover:bg-accent"
+            title="Télécharger modèle .xlsx"
+          >
+            <Download className="size-4" />
+            Modèle
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".xlsx,.xls"
+            className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleImport(f); }}
+          />
+          <button
+            onClick={() => fileRef.current?.click()}
+            disabled={importing || limit.blocked}
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-2 text-sm font-medium hover:bg-accent disabled:opacity-50"
+          >
+            <Upload className="size-4" />
+            {importing ? "Import…" : "Importer"}
+          </button>
+          <button
+            onClick={startCreate}
+            disabled={limit.blocked}
+            className="inline-flex items-center gap-2 bg-primary text-primary-foreground rounded-full px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50"
+          >
+            <Plus className="size-4" />
+            {t("products.newProduct")}
+          </button>
+        </div>
       </div>
+
+      {limit.limit !== null && (limit.warning || limit.blocked) && (
+        <div className={`mb-6 rounded-2xl border p-4 flex items-start gap-3 ${
+          limit.blocked ? "border-red-300 bg-red-50 text-red-900" : "border-amber-300 bg-amber-50 text-amber-900"
+        }`}>
+          <AlertTriangle className="size-5 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="font-semibold text-sm">
+              {limit.blocked
+                ? `Limite atteinte : ${limit.current}/${limit.limit} produits`
+                : `Proche de la limite : ${limit.current}/${limit.limit} produits`}
+            </p>
+            <p className="text-xs mt-0.5 opacity-80">
+              {limit.blocked
+                ? "Passez au plan Pro pour des produits illimités."
+                : `Plus que ${limit.limit - limit.current} produit(s) avant la limite du plan Essai.`}
+            </p>
+          </div>
+          <a href="/dashboard/subscription" className="text-xs font-bold underline shrink-0">Passer Pro →</a>
+        </div>
+      )}
+
+      {importMsg && (
+        <div className="mb-4 rounded-xl border border-border bg-card px-4 py-2.5 text-sm flex items-center justify-between">
+          <span>{importMsg}</span>
+          <button onClick={() => setImportMsg(null)} className="p-1 rounded hover:bg-muted"><X className="size-3.5" /></button>
+        </div>
+      )}
 
       <DataToolbar
         search={search}

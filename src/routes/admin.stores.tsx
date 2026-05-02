@@ -56,6 +56,34 @@ function AdminStoresPage() {
     } finally { setActing(null); }
   };
 
+  const toggleSuspend = async (s: AdminStore) => {
+    if (!confirm(`${s.active ? "Suspendre" : "Réactiver"} la boutique "${s.name}" ?`)) return;
+    setActing(s.id);
+    try {
+      if (!isMock) await api.adminUpdatePlan(s.id, s.active ? "trial" : "pro", s.active ? 0 : 1);
+      load();
+    } finally { setActing(null); }
+  };
+
+  const impersonate = async (s: AdminStore) => {
+    if (!user) return;
+    if (!confirm(`Se connecter en tant que propriétaire de "${s.name}" ?`)) return;
+    setImpersonation({
+      originalUser: user,
+      originalStore: currentStore,
+      originalToken: getAuthToken() ?? "",
+      originalTenant: getTenantId(),
+      targetStoreId: s.id,
+      startedAt: new Date().toISOString(),
+    });
+    setTenantId(s.id);
+    try {
+      const target = await api.getStoreBySlug(s.slug);
+      if (target) refreshStore(target);
+    } catch { /* ignore */ }
+    void navigate({ to: "/dashboard" });
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">

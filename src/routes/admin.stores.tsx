@@ -182,6 +182,29 @@ function AdminStoresPage() {
                       >
                         <Crown className="size-3.5" />
                       </button>
+                      {isSuperAdmin && (
+                        <button
+                          onClick={() => toggleSuspend(s)}
+                          disabled={acting === s.id}
+                          title={s.active ? "Suspendre" : "Réactiver"}
+                          className={`p-1.5 rounded-lg transition-colors disabled:opacity-40 ${
+                            s.active
+                              ? "text-red-400/60 hover:text-red-400 hover:bg-red-500/10"
+                              : "text-emerald-400/60 hover:text-emerald-400 hover:bg-emerald-500/10"
+                          }`}
+                        >
+                          {s.active ? <Ban className="size-3.5" /> : <Play className="size-3.5" />}
+                        </button>
+                      )}
+                      {isSuperAdmin && (
+                        <button
+                          onClick={() => impersonate(s)}
+                          title="Se connecter en tant que ce marchand"
+                          className="p-1.5 rounded-lg text-amber-400/60 hover:text-amber-400 hover:bg-amber-500/10 transition-colors"
+                        >
+                          <UserCheck className="size-3.5" />
+                        </button>
+                      )}
                       <a
                         href={`/store/${s.slug}`}
                         target="_blank"

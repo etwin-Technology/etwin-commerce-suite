@@ -1,12 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
-import { useEffect, useMemo, useState } from "react";
-import { Plus, Trash2, Pencil, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Plus, Trash2, Pencil, X, FileSpreadsheet, Upload, Download, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api/client";
 import type { Product, ProductStatus } from "@/lib/api/types";
 import { ImageUploader } from "@/components/ImageUploader";
 import { DataToolbar } from "@/components/DataToolbar";
+import { exportProducts, downloadProductTemplate, parseProductsFile } from "@/lib/excel";
+import { productLimit } from "@/lib/planLimits";
 
 export const Route = createFileRoute("/dashboard/products")({
   component: ProductsPage,

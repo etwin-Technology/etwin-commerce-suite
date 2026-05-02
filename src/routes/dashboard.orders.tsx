@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { useEffect, useMemo, useState } from "react";
-import { Pencil, Trash2, CheckCircle2, Truck, Eye, X } from "lucide-react";
+import { Pencil, Trash2, CheckCircle2, Truck, Eye, X, FileSpreadsheet } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api/client";
 import type { Order, OrderStatus } from "@/lib/api/types";
 import { DataToolbar } from "@/components/DataToolbar";
+import { exportOrders } from "@/lib/excel";
 import { StatusBadge } from "./dashboard.index";
 
 export const Route = createFileRoute("/dashboard/orders")({
@@ -83,9 +84,19 @@ function OrdersPage() {
 
   return (
     <div className="max-w-7xl mx-auto">
-      <div className="mb-6">
-        <h1 className="font-serif text-4xl font-bold">{t("orders.title")}</h1>
-        <p className="text-muted-foreground mt-1">{t("orders.subtitle")}</p>
+      <div className="mb-6 flex items-end justify-between gap-4">
+        <div>
+          <h1 className="font-serif text-4xl font-bold">{t("orders.title")}</h1>
+          <p className="text-muted-foreground mt-1">{t("orders.subtitle")}</p>
+        </div>
+        <button
+          onClick={() => exportOrders(filtered, store.slug)}
+          disabled={filtered.length === 0}
+          className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-accent disabled:opacity-50"
+        >
+          <FileSpreadsheet className="size-4 text-emerald-600" />
+          Exporter Excel ({filtered.length})
+        </button>
       </div>
 
       <DataToolbar

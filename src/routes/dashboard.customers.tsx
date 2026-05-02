@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Pencil, Trash2, X, Phone } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Phone, FileSpreadsheet } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api/client";
 import type { Customer } from "@/lib/api/types";
 import { DataToolbar } from "@/components/DataToolbar";
+import { exportCustomers } from "@/lib/excel";
 
 export const Route = createFileRoute("/dashboard/customers")({
   component: CustomersPage,
@@ -73,13 +74,23 @@ function CustomersPage() {
           <h1 className="font-serif text-4xl font-bold">{t("customers.title")}</h1>
           <p className="text-muted-foreground mt-1">{t("customers.subtitle")}</p>
         </div>
-        <button
-          onClick={startCreate}
-          className="inline-flex items-center gap-2 bg-primary text-primary-foreground rounded-full px-4 py-2 text-sm font-medium hover:bg-primary/90"
-        >
-          <Plus className="size-4" />
-          Nouveau client
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => exportCustomers(filtered, store.slug)}
+            disabled={filtered.length === 0}
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-accent disabled:opacity-50"
+          >
+            <FileSpreadsheet className="size-4 text-emerald-600" />
+            Excel
+          </button>
+          <button
+            onClick={startCreate}
+            className="inline-flex items-center gap-2 bg-primary text-primary-foreground rounded-full px-4 py-2 text-sm font-medium hover:bg-primary/90"
+          >
+            <Plus className="size-4" />
+            Nouveau client
+          </button>
+        </div>
       </div>
 
       <DataToolbar

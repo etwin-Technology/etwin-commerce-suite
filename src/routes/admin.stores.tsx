@@ -1,8 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Search, Crown, Clock, AlertCircle, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
-import { api, useMockApi } from "@/lib/api/client";
+import { Search, Crown, Clock, AlertCircle, ChevronLeft, ChevronRight, RefreshCw, Ban, Play, UserCheck } from "lucide-react";
+import { api, useMockApi, getAuthToken, getTenantId, setTenantId } from "@/lib/api/client";
 import type { AdminStore, PaginatedResponse } from "@/lib/api/types";
+import { useAuth } from "@/lib/auth";
+import { setImpersonation } from "@/lib/impersonate";
 
 export const Route = createFileRoute("/admin/stores")({
   component: AdminStoresPage,
@@ -19,6 +21,8 @@ const MOCK: PaginatedResponse<AdminStore> = {
 
 function AdminStoresPage() {
   const isMock    = useMockApi();
+  const { user, store: currentStore, refreshStore } = useAuth();
+  const navigate  = useNavigate();
   const [data, setData]         = useState<PaginatedResponse<AdminStore> | null>(null);
   const [loading, setLoading]   = useState(true);
   const [q, setQ]               = useState("");
@@ -28,6 +32,8 @@ function AdminStoresPage() {
   const [planModal, setPlanModal] = useState<AdminStore | null>(null);
   const [newPlan, setNewPlan]   = useState<"pro" | "trial">("pro");
   const [months, setMonths]     = useState(1);
+
+  const isSuperAdmin = user?.role === "super_admin";
 
   const load = () => {
     setLoading(true);
@@ -48,6 +54,34 @@ function AdminStoresPage() {
       setPlanModal(null);
       load();
     } finally { setActing(null); }
+  };
+
+  const toggleSuspend = async (s: AdminStore) => {
+    if (!confirm(`${s.active ? "Suspendre" : "Réactiver"} la boutique "${s.name}" ?`)) return;
+    setActing(s.id);
+    try {
+      if (!isMock) await api.adminUpdatePlan(s.id, s.active ? "trial" : "pro", s.active ? 0 : 1);
+      load();
+    } finally { setActing(null); }
+  };
+
+  const impersonate = async (s: AdminStore) => {
+    if (!user) return;
+    if (!confirm(`Se connecter en tant que propriétaire de "${s.name}" ?`)) return;
+    setImpersonation({
+      originalUser: user,
+      originalStore: currentStore,
+      originalToken: getAuthToken() ?? "",
+      originalTenant: getTenantId(),
+      targetStoreId: s.id,
+      startedAt: new Date().toISOString(),
+    });
+    setTenantId(s.id);
+    try {
+      const target = await api.getStoreBySlug(s.slug);
+      if (target) refreshStore(target);
+    } catch { /* ignore */ }
+    void navigate({ to: "/dashboard" });
   };
 
   return (
@@ -148,6 +182,29 @@ function AdminStoresPage() {
                       >
                         <Crown className="size-3.5" />
                       </button>
+                      {isSuperAdmin && (
+                        <button
+                          onClick={() => toggleSuspend(s)}
+                          disabled={acting === s.id}
+                          title={s.active ? "Suspendre" : "Réactiver"}
+                          className={`p-1.5 rounded-lg transition-colors disabled:opacity-40 ${
+                            s.active
+                              ? "text-red-400/60 hover:text-red-400 hover:bg-red-500/10"
+                              : "text-emerald-400/60 hover:text-emerald-400 hover:bg-emerald-500/10"
+                          }`}
+                        >
+                          {s.active ? <Ban className="size-3.5" /> : <Play className="size-3.5" />}
+                        </button>
+                      )}
+                      {isSuperAdmin && (
+                        <button
+                          onClick={() => impersonate(s)}
+                          title="Se connecter en tant que ce marchand"
+                          className="p-1.5 rounded-lg text-amber-400/60 hover:text-amber-400 hover:bg-amber-500/10 transition-colors"
+                        >
+                          <UserCheck className="size-3.5" />
+                        </button>
+                      )}
                       <a
                         href={`/store/${s.slug}`}
                         target="_blank"

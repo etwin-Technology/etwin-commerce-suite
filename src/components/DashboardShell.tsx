@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Package, ShoppingCart, Users, LogOut,
   Store as StoreIcon, ExternalLink, LayoutTemplate, Palette,
   Globe, CreditCard, Menu, X, ChevronRight, Shield,
-  Settings, User as UserIcon, ChevronDown,
+  Settings, ChevronDown, UserCog,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { LanguageSwitcher } from "./LanguageSwitcher";
@@ -30,6 +30,7 @@ const storeNav: NavItem[] = [
   { to: "/dashboard/storefront", key: "storefront", icon: LayoutTemplate,  label: "Ma boutique",   badge: "NEW" },
   { to: "/dashboard/customize",  key: "customize",  icon: Palette,         label: "Personnaliser" },
   { to: "/dashboard/domains",    key: "domains",    icon: Globe,           label: "Domaine" },
+  { to: "/dashboard/team",       key: "team",       icon: UserCog,         label: "Équipe" },
 ];
 
 function NavGroup({ title, items, location, onNavigate }: {

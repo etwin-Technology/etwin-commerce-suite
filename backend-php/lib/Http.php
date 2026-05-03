@@ -84,6 +84,7 @@ class Http {
         $st->execute([$tid, $u['sub']]);
         $store = $st->fetch();
         if (!$store) self::fail('Tenant not found or forbidden', 403);
+        if (!empty($store['suspended'])) self::fail('Cette boutique est suspendue. Contactez le support.', 423);
         return ['user' => $u, 'store' => $store];
     }
 

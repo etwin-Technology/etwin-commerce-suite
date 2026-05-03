@@ -5,6 +5,7 @@ import appCss from "../styles.css?url";
 import "../i18n";
 import { applyLangToDocument } from "../i18n";
 import { AuthProvider } from "../lib/auth";
+import { ImpersonationBanner } from "../components/ImpersonationBanner";
 import i18n from "../i18n";
 
 function NotFoundComponent() {
@@ -81,6 +82,7 @@ function RootComponent() {
   }, []);
   return (
     <AuthProvider>
+      <ImpersonationBanner />
       <Outlet />
     </AuthProvider>
   );

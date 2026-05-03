@@ -135,9 +135,11 @@ class Http {
     // ──────────────────────────────────────────────────────────────────────────
     private static function planWeight(string $plan): int {
         return match($plan) {
-            'pro'   => 2,
-            'trial' => 1,
-            default => 0,
+            'business' => 4,
+            'pro'      => 3,
+            'starter'  => 2,
+            'trial'    => 1, // legacy
+            default    => 0,
         };
     }
 

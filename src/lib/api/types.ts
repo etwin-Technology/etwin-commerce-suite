@@ -333,3 +333,15 @@ export interface PaginatedResponse<T> {
   pages: number;
   items: T[];
 }
+
+export interface StoreMemberDTO {
+  id: string;
+  storeId: string;
+  userId: string | null;
+  email: string;
+  fullName: string;
+  role: "owner" | "sales" | "stock" | "custom";
+  permissions: Record<string, boolean>;
+  active: boolean;
+  invitedAt: string;
+}

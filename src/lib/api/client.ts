@@ -261,6 +261,9 @@ export const api = {
   adminUpdatePlan: (storeId: string, plan: string, months?: number): Promise<{ ok: boolean; plan: string; expiresAt: string }> =>
     request(`/api/admin/stores/${storeId}/plan`, { method: "PATCH", body: JSON.stringify({ plan, months: months ?? 1 }) }),
 
+  adminSuspendStore: (storeId: string, reason?: string): Promise<{ ok: boolean; suspended: boolean }> =>
+    request(`/api/admin/stores/${storeId}/suspend`, { method: "POST", body: JSON.stringify({ reason: reason ?? null }) }),
+
   adminVerifyDomain: (storeId: string): Promise<{ ok: boolean }> =>
     request(`/api/admin/domains/${storeId}/verify`, { method: "POST" }),
 

@@ -117,7 +117,14 @@ function TeamPage() {
                 <td className="px-4 py-3 text-end">
                   <div className="inline-flex items-center gap-1">
                     <button onClick={() => { setCreating(false); setEditing(m); }} className="text-xs text-primary hover:underline">Modifier</button>
-                    <button onClick={() => { if (confirm(`Retirer ${m.fullName} ?`)) { memberStore.remove(m.id); refresh(); } }} className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive">
+                    <button onClick={async () => {
+                      if (!confirm(`Retirer ${m.fullName} ?`)) return;
+                      try {
+                        if (isMock) memberStore.remove(m.id);
+                        else await api.deleteMember(m.id);
+                        await refresh();
+                      } catch (e) { setError((e as Error).message); }
+                    }} className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive">
                       <Trash2 className="size-3.5" />
                     </button>
                   </div>
@@ -180,14 +187,20 @@ function MemberModal({
     setRole("custom");
   };
 
-  const save = () => {
+  const save = async () => {
     if (!email.trim() || !fullName.trim()) return;
-    if (existing) {
-      memberStore.update(existing.id, { email, fullName, role, permissions: perms, active });
-    } else {
-      memberStore.add({ storeId, email, fullName, role, permissions: perms, active: true });
-    }
-    onSaved();
+    const isMock = useMockApi();
+    try {
+      if (isMock) {
+        if (existing) memberStore.update(existing.id, { email, fullName, role, permissions: perms, active });
+        else memberStore.add({ storeId, email, fullName, role, permissions: perms, active: true });
+      } else if (existing) {
+        await api.updateMember(existing.id, { role, permissions: perms as unknown as Record<string, boolean>, active, fullName });
+      } else {
+        await api.createMember({ email, fullName, role, permissions: perms as unknown as Record<string, boolean> });
+      }
+      onSaved();
+    } catch (e) { alert((e as Error).message); }
   };
 
   return (

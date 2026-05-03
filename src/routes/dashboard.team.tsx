@@ -28,7 +28,7 @@ function TeamPage() {
       setItems(rows.map(r => ({
         id: r.id, storeId: r.storeId, email: r.email, fullName: r.fullName,
         role: r.role as MemberRole,
-        permissions: r.permissions as Permissions,
+        permissions: r.permissions as unknown as Permissions,
         active: r.active, invitedAt: r.invitedAt,
       })));
     } catch (e) { setError((e as Error).message); }

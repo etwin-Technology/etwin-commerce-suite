@@ -60,7 +60,7 @@ function AdminStoresPage() {
     if (!confirm(`${s.active ? "Suspendre" : "Réactiver"} la boutique "${s.name}" ?`)) return;
     setActing(s.id);
     try {
-      if (!isMock) await api.adminUpdatePlan(s.id, s.active ? "trial" : "pro", s.active ? 0 : 1);
+      if (!isMock) await api.adminSuspendStore(s.id);
       load();
     } finally { setActing(null); }
   };

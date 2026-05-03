@@ -59,16 +59,16 @@ function TeamPage() {
         </div>
         <button
           onClick={() => { setEditing(null); setCreating(true); }}
-          disabled={!isPro}
+          disabled={!teamUnlocked}
           className="inline-flex items-center gap-2 bg-primary text-primary-foreground rounded-full px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-          title={!isPro ? "Plan Pro requis" : ""}
+          title={!teamUnlocked ? "Plan Pro / Business requis" : ""}
         >
           <UserPlus className="size-4" />
           Inviter un membre
         </button>
       </div>
 
-      {!isPro && (
+      {!teamUnlocked && (
         <div className="mb-6 rounded-2xl border border-amber-300/50 bg-amber-50 p-4 text-sm text-amber-900">
           <p className="font-semibold mb-1">Fonctionnalité Pro</p>
           <p>L'invitation de collaborateurs est disponible avec le plan Pro. Passez au plan Pro pour ajouter des membres avec rôles personnalisés.</p>

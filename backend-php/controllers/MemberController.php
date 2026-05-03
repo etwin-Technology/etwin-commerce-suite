@@ -18,10 +18,12 @@ class MemberController {
         return $ctx; // owner = the auth user, since stores.owner_id = user
     }
 
-    private static function ensurePro(array $store): void {
-        if (!($store['plan'] === 'pro' && (bool)$store['plan_active'] && strtotime($store['plan_expires_at']) > time())) {
-            Http::fail("La gestion d'équipe nécessite le plan Pro.", 402);
-        }
+    private static function ensureTeamFeature(array $store): int {
+        $active = (bool)$store['plan_active'] && strtotime($store['plan_expires_at']) > time();
+        if (!$active) Http::fail('Abonnement expiré. Renouvelez votre plan.', 402);
+        $limit = Http::planTeamLimit($store);
+        if ($limit <= 0) Http::fail("La gestion d'équipe nécessite le plan Pro ou Business.", 402);
+        return $limit;
     }
 
     private static function row(array $r): array {

@@ -49,12 +49,20 @@ class MemberController {
 
     public static function create(): void {
         $ctx = self::ensureOwner();
-        self::ensurePro($ctx['store']);
+        $limit = self::ensureTeamFeature($ctx['store']);
         $b   = Http::body();
         $in  = Http::require($b, ['email','fullName','role']);
         $role = in_array($in['role'], ['owner','sales','stock','custom']) ? $in['role'] : 'custom';
         $perms = is_array($b['permissions'] ?? null) ? $b['permissions'] : [];
         $id    = DB::uuid();
+
+        $pdo = DB::pdo();
+        // enforce team_limit
+        $countSt = $pdo->prepare('SELECT COUNT(*) FROM store_members WHERE tenant_id = ?');
+        $countSt->execute([$ctx['store']['id']]);
+        if ((int)$countSt->fetchColumn() >= $limit) {
+            Http::fail("Limite atteinte ({$limit} membres). Passez au plan supérieur.", 402);
+        }
 
         $pdo = DB::pdo();
         // try to link to an existing user by email

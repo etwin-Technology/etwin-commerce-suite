@@ -288,4 +288,14 @@ export const api = {
   // Public platform settings (no auth required — for landing page)
   publicSettings: (): Promise<Partial<PlatformSettings>> =>
     useMockApi() ? mockApi.publicSettings() : request(`/api/public/settings`),
+
+  // ─── Team members (real backend) ─────────────────────────────────────────
+  listMembers: (): Promise<import("./types").StoreMemberDTO[]> =>
+    useMockApi() ? Promise.resolve([]) : request(`/api/members`),
+  createMember: (input: { email: string; fullName: string; role: string; permissions: Record<string, boolean> }): Promise<import("./types").StoreMemberDTO> =>
+    request(`/api/members`, { method: "POST", body: JSON.stringify(input) }),
+  updateMember: (id: string, patch: Partial<{ role: string; permissions: Record<string, boolean>; active: boolean; fullName: string }>): Promise<import("./types").StoreMemberDTO> =>
+    request(`/api/members/${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
+  deleteMember: (id: string): Promise<{ ok: boolean }> =>
+    request(`/api/members/${id}`, { method: "DELETE" }),
 };

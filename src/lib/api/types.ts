@@ -1,7 +1,7 @@
 // Shared types for the ETWIN Commerce REST client.
 // Mirror the contract expected from the PHP backend.
 
-export type Plan = "trial" | "pro";
+export type Plan = "trial" | "starter" | "pro" | "business";
 export type UserRole = "user" | "admin" | "super_admin";
 export type Currency = "MAD" | "EUR" | "USD";
 export type ProductStatus = "active" | "draft" | "archived";
@@ -332,4 +332,16 @@ export interface PaginatedResponse<T> {
   page: number;
   pages: number;
   items: T[];
+}
+
+export interface StoreMemberDTO {
+  id: string;
+  storeId: string;
+  userId: string | null;
+  email: string;
+  fullName: string;
+  role: "owner" | "sales" | "stock" | "custom";
+  permissions: Record<string, boolean>;
+  active: boolean;
+  invitedAt: string;
 }

@@ -135,9 +135,11 @@ class Http {
     // ──────────────────────────────────────────────────────────────────────────
     private static function planWeight(string $plan): int {
         return match($plan) {
-            'pro'   => 2,
-            'trial' => 1,
-            default => 0,
+            'business' => 4,
+            'pro'      => 3,
+            'starter'  => 2,
+            'trial'    => 1, // legacy
+            default    => 0,
         };
     }
 
@@ -171,11 +173,22 @@ class Http {
      * Returns null = unlimited.
      */
     public static function planProductLimit(array $store): ?int {
-        if ($store['plan'] === 'pro' && (bool)$store['plan_active'] && strtotime($store['plan_expires_at']) > time()) {
-            return null; // unlimited on pro
-        }
-        $row = DB::pdo()->query("SELECT trial_limit FROM plan_features WHERE feature = 'products' LIMIT 1")->fetch();
-        return $row ? (int)$row['trial_limit'] : 10;
+        $active = (bool)$store['plan_active'] && strtotime($store['plan_expires_at']) > time();
+        if (!$active) return 0; // expired = no creates
+        $plan = $store['plan'] === 'trial' ? 'starter' : $store['plan'];
+        $row = DB::pdo()->prepare('SELECT product_limit FROM plan_catalog WHERE id = ? LIMIT 1');
+        $row->execute([$plan]);
+        $val = $row->fetchColumn();
+        if ($val === false) return 10;
+        return $val === null ? null : (int)$val;
+    }
+
+    /** Team-member limit for the current tenant. 0 means feature locked. */
+    public static function planTeamLimit(array $store): int {
+        $plan = $store['plan'] === 'trial' ? 'starter' : $store['plan'];
+        $row = DB::pdo()->prepare('SELECT team_limit FROM plan_catalog WHERE id = ? LIMIT 1');
+        $row->execute([$plan]);
+        return (int)($row->fetchColumn() ?: 0);
     }
 
     // ──────────────────────────────────────────────────────────────────────────

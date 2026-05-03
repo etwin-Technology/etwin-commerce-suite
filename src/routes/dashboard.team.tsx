@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Plus, Trash2, Shield, X, UserPlus, Lock } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { api, useMockApi } from "@/lib/api/client";
 import {
   memberStore, rolePreset, ALL_PERMS, PERMISSION_LABELS,
   type StoreMember, type MemberRole, type Permissions, type PermissionKey,
@@ -13,16 +14,31 @@ export const Route = createFileRoute("/dashboard/team")({
 
 function TeamPage() {
   const { store, user } = useAuth();
+  const isMock = useMockApi();
   const [items, setItems] = useState<StoreMember[]>([]);
   const [editing, setEditing] = useState<StoreMember | null>(null);
   const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const refresh = () => { if (store) setItems(memberStore.list(store.id)); };
-  useEffect(refresh, [store?.id]);
+  const refresh = useCallback(async () => {
+    if (!store) return;
+    if (isMock) { setItems(memberStore.list(store.id)); return; }
+    try {
+      const rows = await api.listMembers();
+      setItems(rows.map(r => ({
+        id: r.id, storeId: r.storeId, email: r.email, fullName: r.fullName,
+        role: r.role as MemberRole,
+        permissions: r.permissions as unknown as Permissions,
+        active: r.active, invitedAt: r.invitedAt,
+      })));
+    } catch (e) { setError((e as Error).message); }
+  }, [store?.id, isMock]);
+  useEffect(() => { void refresh(); }, [refresh]);
 
   if (!store) return null;
   const isOwner = user?.id === store.ownerId;
-  const isPro = store.subscription.plan === "pro" && store.subscription.active;
+  const teamUnlocked = store.subscription.active &&
+    (store.subscription.plan === "pro" || store.subscription.plan === "business");
 
   if (!isOwner) {
     return (
@@ -43,16 +59,16 @@ function TeamPage() {
         </div>
         <button
           onClick={() => { setEditing(null); setCreating(true); }}
-          disabled={!isPro}
+          disabled={!teamUnlocked}
           className="inline-flex items-center gap-2 bg-primary text-primary-foreground rounded-full px-4 py-2 text-sm font-medium hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-          title={!isPro ? "Plan Pro requis" : ""}
+          title={!teamUnlocked ? "Plan Pro / Business requis" : ""}
         >
           <UserPlus className="size-4" />
           Inviter un membre
         </button>
       </div>
 
-      {!isPro && (
+      {!teamUnlocked && (
         <div className="mb-6 rounded-2xl border border-amber-300/50 bg-amber-50 p-4 text-sm text-amber-900">
           <p className="font-semibold mb-1">Fonctionnalité Pro</p>
           <p>L'invitation de collaborateurs est disponible avec le plan Pro. Passez au plan Pro pour ajouter des membres avec rôles personnalisés.</p>
@@ -101,7 +117,14 @@ function TeamPage() {
                 <td className="px-4 py-3 text-end">
                   <div className="inline-flex items-center gap-1">
                     <button onClick={() => { setCreating(false); setEditing(m); }} className="text-xs text-primary hover:underline">Modifier</button>
-                    <button onClick={() => { if (confirm(`Retirer ${m.fullName} ?`)) { memberStore.remove(m.id); refresh(); } }} className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive">
+                    <button onClick={async () => {
+                      if (!confirm(`Retirer ${m.fullName} ?`)) return;
+                      try {
+                        if (isMock) memberStore.remove(m.id);
+                        else await api.deleteMember(m.id);
+                        await refresh();
+                      } catch (e) { setError((e as Error).message); }
+                    }} className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive">
                       <Trash2 className="size-3.5" />
                     </button>
                   </div>
@@ -164,14 +187,20 @@ function MemberModal({
     setRole("custom");
   };
 
-  const save = () => {
+  const save = async () => {
     if (!email.trim() || !fullName.trim()) return;
-    if (existing) {
-      memberStore.update(existing.id, { email, fullName, role, permissions: perms, active });
-    } else {
-      memberStore.add({ storeId, email, fullName, role, permissions: perms, active: true });
-    }
-    onSaved();
+    const isMock = useMockApi();
+    try {
+      if (isMock) {
+        if (existing) memberStore.update(existing.id, { email, fullName, role, permissions: perms, active });
+        else memberStore.add({ storeId, email, fullName, role, permissions: perms, active: true });
+      } else if (existing) {
+        await api.updateMember(existing.id, { role, permissions: perms as unknown as Record<string, boolean>, active, fullName });
+      } else {
+        await api.createMember({ email, fullName, role, permissions: perms as unknown as Record<string, boolean> });
+      }
+      onSaved();
+    } catch (e) { alert((e as Error).message); }
   };
 
   return (

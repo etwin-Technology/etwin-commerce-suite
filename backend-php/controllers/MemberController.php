@@ -18,10 +18,12 @@ class MemberController {
         return $ctx; // owner = the auth user, since stores.owner_id = user
     }
 
-    private static function ensurePro(array $store): void {
-        if (!($store['plan'] === 'pro' && (bool)$store['plan_active'] && strtotime($store['plan_expires_at']) > time())) {
-            Http::fail("La gestion d'équipe nécessite le plan Pro.", 402);
-        }
+    private static function ensureTeamFeature(array $store): int {
+        $active = (bool)$store['plan_active'] && strtotime($store['plan_expires_at']) > time();
+        if (!$active) Http::fail('Abonnement expiré. Renouvelez votre plan.', 402);
+        $limit = Http::planTeamLimit($store);
+        if ($limit <= 0) Http::fail("La gestion d'équipe nécessite le plan Pro ou Business.", 402);
+        return $limit;
     }
 
     private static function row(array $r): array {
@@ -47,12 +49,20 @@ class MemberController {
 
     public static function create(): void {
         $ctx = self::ensureOwner();
-        self::ensurePro($ctx['store']);
+        $limit = self::ensureTeamFeature($ctx['store']);
         $b   = Http::body();
         $in  = Http::require($b, ['email','fullName','role']);
         $role = in_array($in['role'], ['owner','sales','stock','custom']) ? $in['role'] : 'custom';
         $perms = is_array($b['permissions'] ?? null) ? $b['permissions'] : [];
         $id    = DB::uuid();
+
+        $pdo = DB::pdo();
+        // enforce team_limit
+        $countSt = $pdo->prepare('SELECT COUNT(*) FROM store_members WHERE tenant_id = ?');
+        $countSt->execute([$ctx['store']['id']]);
+        if ((int)$countSt->fetchColumn() >= $limit) {
+            Http::fail("Limite atteinte ({$limit} membres). Passez au plan supérieur.", 402);
+        }
 
         $pdo = DB::pdo();
         // try to link to an existing user by email
@@ -77,7 +87,7 @@ class MemberController {
 
     public static function update(string $id): void {
         $ctx = self::ensureOwner();
-        self::ensurePro($ctx['store']);
+        self::ensureTeamFeature($ctx['store']);
         $b   = Http::body();
         $sets = []; $vals = [];
         if (isset($b['role'])) {

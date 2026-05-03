@@ -19,6 +19,7 @@ require __DIR__ . '/../controllers/DomainController.php';
 require __DIR__ . '/../controllers/SubscriptionController.php';
 require __DIR__ . '/../controllers/AdminController.php';
 require __DIR__ . '/../controllers/UploadController.php';
+require __DIR__ . '/../controllers/MemberController.php';
 
 set_exception_handler(function (Throwable $e) {
     error_log('[etwin] ' . $e->getMessage() . "\n" . $e->getTraceAsString());
@@ -109,6 +110,7 @@ if (($p = route('POST',  $method, '/api/admin/users/{id}/suspend',  $path)) !== 
 if (($p = route('POST',  $method, '/api/admin/users/{id}/delete',   $path)) !== false) AdminController::deleteUser($p['id']);
 if (($p = route('PATCH', $method, '/api/admin/users/{id}/role',     $path)) !== false) AdminController::updateUserRole($p['id']);
 if (($p = route('PATCH', $method, '/api/admin/stores/{id}/plan',    $path)) !== false) AdminController::updatePlan($p['id']);
+if (($p = route('POST',  $method, '/api/admin/stores/{id}/suspend', $path)) !== false) AdminController::suspendStore($p['id']);
 if (($p = route('POST',  $method, '/api/admin/domains/{id}/verify', $path)) !== false) AdminController::verifyDomain($p['id']);
 if (($p = route('POST',  $method, '/api/admin/domains/{id}/revoke', $path)) !== false) AdminController::revokeDomain($p['id']);
 
@@ -123,6 +125,12 @@ if (route('GET', $method, '/api/public/settings', $path) !== false) AdminControl
 
 // ── UPLOADS ───────────────────────────────────────────────────────────────────
 if (route('POST', $method, '/api/upload/image', $path) !== false) UploadController::image();
+
+// ── TEAM MEMBERS ──────────────────────────────────────────────────────────────
+if (route('GET',  $method, '/api/members', $path) !== false) MemberController::list();
+if (route('POST', $method, '/api/members', $path) !== false) MemberController::create();
+if (($p = route('PATCH',  $method, '/api/members/{id}', $path)) !== false) MemberController::update($p['id']);
+if (($p = route('DELETE', $method, '/api/members/{id}', $path)) !== false) MemberController::delete($p['id']);
 
 // ── HEALTH ────────────────────────────────────────────────────────────────────
 if (route('GET', $method, '/api/health', $path) !== false) Http::json(['ok' => true, 'service' => 'etwin-commerce-api', 'version' => '3.1']);

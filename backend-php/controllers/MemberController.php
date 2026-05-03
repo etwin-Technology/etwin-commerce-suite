@@ -87,7 +87,7 @@ class MemberController {
 
     public static function update(string $id): void {
         $ctx = self::ensureOwner();
-        self::ensurePro($ctx['store']);
+        self::ensureTeamFeature($ctx['store']);
         $b   = Http::body();
         $sets = []; $vals = [];
         if (isset($b['role'])) {

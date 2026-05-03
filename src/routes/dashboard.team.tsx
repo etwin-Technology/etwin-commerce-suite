@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Plus, Trash2, Shield, X, UserPlus, Lock } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { api, useMockApi } from "@/lib/api/client";
 import {
   memberStore, rolePreset, ALL_PERMS, PERMISSION_LABELS,
   type StoreMember, type MemberRole, type Permissions, type PermissionKey,
@@ -13,16 +14,31 @@ export const Route = createFileRoute("/dashboard/team")({
 
 function TeamPage() {
   const { store, user } = useAuth();
+  const isMock = useMockApi();
   const [items, setItems] = useState<StoreMember[]>([]);
   const [editing, setEditing] = useState<StoreMember | null>(null);
   const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const refresh = () => { if (store) setItems(memberStore.list(store.id)); };
-  useEffect(refresh, [store?.id]);
+  const refresh = useCallback(async () => {
+    if (!store) return;
+    if (isMock) { setItems(memberStore.list(store.id)); return; }
+    try {
+      const rows = await api.listMembers();
+      setItems(rows.map(r => ({
+        id: r.id, storeId: r.storeId, email: r.email, fullName: r.fullName,
+        role: r.role as MemberRole,
+        permissions: r.permissions as Permissions,
+        active: r.active, invitedAt: r.invitedAt,
+      })));
+    } catch (e) { setError((e as Error).message); }
+  }, [store?.id, isMock]);
+  useEffect(() => { void refresh(); }, [refresh]);
 
   if (!store) return null;
   const isOwner = user?.id === store.ownerId;
-  const isPro = store.subscription.plan === "pro" && store.subscription.active;
+  const teamUnlocked = store.subscription.active &&
+    (store.subscription.plan === "pro" || store.subscription.plan === "business");
 
   if (!isOwner) {
     return (

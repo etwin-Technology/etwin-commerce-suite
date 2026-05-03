@@ -258,6 +258,23 @@ class AdminController {
     }
 
     // ──────────────────────────────────────────────────────────────────────────
+    //  Suspend / reactivate a store (super_admin)
+    // ──────────────────────────────────────────────────────────────────────────
+    public static function suspendStore(string $storeId): void {
+        Http::requireRole('admin');
+        $b = Http::body();
+        $reason = isset($b['reason']) ? (string)$b['reason'] : null;
+        $pdo = DB::pdo();
+        $st  = $pdo->prepare('SELECT id, suspended FROM stores WHERE id = ? LIMIT 1');
+        $st->execute([$storeId]);
+        $row = $st->fetch();
+        if (!$row) Http::fail('Store not found', 404);
+        $next = (int)$row['suspended'] === 1 ? 0 : 1;
+        $pdo->prepare('UPDATE stores SET suspended = ?, suspended_reason = ? WHERE id = ?')
+            ->execute([$next, $next ? $reason : null, $storeId]);
+        Http::json(['ok' => true, 'suspended' => (bool)$next]);
+
+    // ──────────────────────────────────────────────────────────────────────────
     //  Domains
     // ──────────────────────────────────────────────────────────────────────────
     public static function domains(): void {

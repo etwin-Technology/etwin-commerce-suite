@@ -13,7 +13,11 @@ The frontend automatically uses this backend when you set `VITE_PHP_API_BASE`.
 # 1) Create the database
 mysql -u root -p < sql/schema.sql
 
-# 2) Set environment variables (or edit config/config.php)
+# 2) Configure secrets — pick one:
+#    a) For local dev: copy .env.example → .env and edit it
+cp .env.example .env
+
+#    b) For production: export real environment variables
 export DB_HOST=127.0.0.1
 export DB_NAME=etwin_commerce
 export DB_USER=root
@@ -26,6 +30,62 @@ export CORS_ALLOW_ORIGIN="https://your-frontend.app"
 # 3) Serve `public/` as the web root
 php -S 0.0.0.0:8080 -t public      # quick local dev
 ```
+
+> Real OS env vars always win over `.env` values, so committing `.env.example`
+> as a template is safe — production deploys keep using their real env.
+
+## 2.b Laragon (Windows local dev)
+
+The repo ships with a working Laragon flow. Two options:
+
+### Option A — Built-in PHP server (simplest)
+1. Open Laragon → **Menu → MySQL → Create database** → name it `etwin_commerce`.
+2. Import the schema (Laragon → **HeidiSQL** or `mysql` from Laragon's terminal):
+   ```bash
+   mysql -u root etwin_commerce < sql/schema.sql
+   # then any pending migrations:
+   mysql -u root etwin_commerce < sql/migrate_v2.sql
+   mysql -u root etwin_commerce < sql/migrate_v3.sql
+   mysql -u root etwin_commerce < sql/migrate_v4.sql
+   mysql -u root etwin_commerce < sql/migrate_v5.sql
+   mysql -u root etwin_commerce < sql/migrate_v6.sql
+   ```
+3. Copy the env template:
+   ```bash
+   cd backend-php
+   cp .env.example .env
+   ```
+   The defaults already match Laragon (root user, empty password, `127.0.0.1:3306`).
+4. From Laragon's terminal, start the API:
+   ```bash
+   php -S 127.0.0.1:8080 -t public
+   ```
+5. In the project root, point the frontend at it — edit `.env`:
+   ```
+   VITE_PHP_API_BASE=http://127.0.0.1:8080
+   ```
+   Then `bun run dev` (or `npm run dev`). Browse `http://localhost:5173`.
+
+### Option B — Apache vhost (`.test` domain)
+If you want the API on a Laragon `.test` domain:
+
+1. Put the project at `C:\laragon\www\etwin-commerce-suite\` (Laragon auto-creates `etwin-commerce-suite.test`).
+2. Create `C:\laragon\etc\apache2\sites-enabled\auto.etwin-api.test.conf`:
+   ```apache
+   <VirtualHost *:80>
+     ServerName etwin-api.test
+     DocumentRoot "C:/laragon/www/etwin-commerce-suite/backend-php/public"
+     <Directory "C:/laragon/www/etwin-commerce-suite/backend-php/public">
+       AllowOverride All
+       Require all granted
+     </Directory>
+   </VirtualHost>
+   ```
+3. Laragon **Menu → Apache → Reload**. The host file is patched automatically.
+4. Set `VITE_PHP_API_BASE=http://etwin-api.test` in the frontend `.env`.
+5. Set `CORS_ALLOW_ORIGIN=http://localhost:5173` in `backend-php/.env`.
+
+The `.htaccess` in `backend-php/public/` handles routing — no extra config needed.
 
 ### Apache vhost
 ```apache

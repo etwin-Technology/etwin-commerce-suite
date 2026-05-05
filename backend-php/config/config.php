@@ -4,6 +4,32 @@
 // `APP_ENV=production` triggers strict validation: missing/weak secrets cause a 500
 // at boot rather than silently using insecure defaults.
 
+// Load `backend-php/.env` (if present) so local dev (e.g. Laragon on Windows)
+// works without setting Windows-level environment variables. Real env vars
+// always win over .env values, so production deploys are unaffected.
+// Guarded by a constant because config.php is `require`d (not `require_once`)
+// from many call sites — we only need to read the file once per request.
+if (!defined('ETWIN_DOTENV_LOADED')) {
+    define('ETWIN_DOTENV_LOADED', true);
+    $envPath = __DIR__ . '/../.env';
+    if (is_file($envPath) && is_readable($envPath)) {
+        foreach (file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
+            $line = trim($line);
+            if ($line === '' || $line[0] === '#') continue;
+            if (!str_contains($line, '=')) continue;
+            [$k, $v] = array_map('trim', explode('=', $line, 2));
+            if ($k === '' || getenv($k) !== false) continue;
+            // Strip a single matched pair of surrounding quotes.
+            if (strlen($v) >= 2 && (($v[0] === '"' && $v[-1] === '"') || ($v[0] === "'" && $v[-1] === "'"))) {
+                $v = substr($v, 1, -1);
+            }
+            putenv("$k=$v");
+            $_ENV[$k] = $v;
+        }
+    }
+    unset($envPath);
+}
+
 $env = getenv('APP_ENV') ?: 'development';
 $isProd = $env === 'production';
 

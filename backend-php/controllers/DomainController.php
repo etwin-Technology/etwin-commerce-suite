@@ -28,14 +28,16 @@ class DomainController {
     }
 
     // ──────────────────────────────────────────────────────────
-    //  Set / update custom domain
+    //  Set / update custom domain — requires the `custom_domain` feature
+    //  (granted by plan tier, or an explicit super-admin override).
     // ──────────────────────────────────────────────────────────
     public static function set(): void {
-        $ctx  = Http::ownedTenant();
+        $ctx  = Http::requireFeature('custom_domain');
         $b    = Http::body();
         $domain = trim(strtolower($b['domain'] ?? ''));
 
         if (!$domain) Http::fail('domain is required', 422);
+        if (mb_strlen($domain) > 253) Http::fail('Domain too long', 422);
 
         // Validate domain format
         if (!preg_match('/^[a-z0-9]([a-z0-9\-]{0,61}[a-z0-9])?(\.[a-z]{2,})+$/', $domain)) {

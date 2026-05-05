@@ -2,11 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Pencil, Trash2, X, Phone, FileSpreadsheet } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api/client";
 import type { Customer } from "@/lib/api/types";
 import { DataToolbar } from "@/components/DataToolbar";
 import { exportCustomers } from "@/lib/excel";
+import { useStoreFeatures } from "@/hooks/useStoreFeatures";
 
 export const Route = createFileRoute("/dashboard/customers")({
   component: CustomersPage,
@@ -18,6 +20,8 @@ const blank = (): Draft => ({ name: "", phone: "", address: "" });
 function CustomersPage() {
   const { t } = useTranslation();
   const { store } = useAuth();
+  const { features } = useStoreFeatures();
+  const excelLocked = !!features && !features.excel_export;
   const [items, setItems]       = useState<Customer[]>([]);
   const [loading, setLoading]   = useState(true);
   const [search, setSearch]     = useState("");
@@ -29,7 +33,10 @@ function CustomersPage() {
   const refresh = () => {
     if (!store) return;
     setLoading(true);
-    api.listCustomers(store.id).then(setItems).finally(() => setLoading(false));
+    api.listCustomers(store.id)
+      .then(setItems)
+      .catch(e => toast.error(e instanceof Error ? e.message : "Échec du chargement"))
+      .finally(() => setLoading(false));
   };
   useEffect(() => { refresh(); /* eslint-disable-next-line */ }, [store?.id]);
 
@@ -55,16 +62,26 @@ function CustomersPage() {
   const startEdit   = (c: Customer) => { setCreating(false); setEditing(c); setDraft({ name: c.name, phone: c.phone, address: c.address }); };
   const cancel      = () => { setCreating(false); setEditing(null); };
   const save        = async () => {
-    if (!draft.name.trim() || !draft.phone.trim()) return;
-    if (editing) await api.updateCustomer(store.id, editing.id, draft);
-    else         await api.createCustomer(store.id, draft);
-    cancel();
-    refresh();
+    const name  = draft.name.trim();
+    const phone = draft.phone.trim();
+    if (!name)  { toast.error("Nom requis"); return; }
+    if (!phone) { toast.error("Téléphone requis"); return; }
+    if (phone.replace(/[^\d+]/g, "").length < 8) { toast.error("Téléphone invalide"); return; }
+    try {
+      if (editing) await api.updateCustomer(store.id, editing.id, { name, phone, address: draft.address });
+      else         await api.createCustomer(store.id, { name, phone, address: draft.address });
+      toast.success(editing ? "Client mis à jour" : "Client ajouté");
+      cancel();
+      refresh();
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Erreur"); }
   };
   const remove = async (c: Customer) => {
     if (!confirm(`Supprimer ${c.name} ?`)) return;
-    await api.deleteCustomer(store.id, c.id);
-    refresh();
+    try {
+      await api.deleteCustomer(store.id, c.id);
+      toast.success("Client supprimé");
+      refresh();
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Erreur"); }
   };
 
   return (
@@ -76,8 +93,12 @@ function CustomersPage() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => exportCustomers(filtered, store.slug)}
-            disabled={filtered.length === 0}
+            onClick={() => {
+              if (excelLocked) { toast.error("Export Excel verrouillé pour votre plan."); return; }
+              exportCustomers(filtered, store.slug);
+            }}
+            disabled={filtered.length === 0 || excelLocked}
+            title={excelLocked ? "Export Excel verrouillé pour votre plan" : "Exporter en .xlsx"}
             className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-accent disabled:opacity-50"
           >
             <FileSpreadsheet className="size-4 text-emerald-600" />

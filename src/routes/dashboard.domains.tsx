@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Globe, CheckCircle, Clock, AlertCircle, Trash2, RefreshCw, Copy, Check } from "lucide-react";
+import { toast } from "sonner";
 import { api } from "@/lib/api/client";
 import { useMockApi } from "@/lib/api/client";
 import { useAuth } from "@/lib/auth";
@@ -26,30 +27,41 @@ function DomainsPage() {
     setLoading(true);
     api.getDomain()
       .then(d => { setInfo(d); if (d.domain) setDomain(d.domain); })
-      .catch(() => {})
+      .catch(e => toast.error(e instanceof Error ? e.message : "Échec du chargement"))
       .finally(() => setLoading(false));
   };
 
   useEffect(load, [store?.id]);
 
   const save = async () => {
-    if (!domain.trim() || isMock) return;
+    const trimmed = domain.trim().toLowerCase();
+    if (!trimmed || isMock) return;
+    if (!/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z]{2,})+$/.test(trimmed)) {
+      toast.error("Format de domaine invalide. Ex: shop.example.com");
+      return;
+    }
     setSaving(true);
     try {
-      const d = await api.setDomain(domain.trim().toLowerCase());
+      const d = await api.setDomain(trimmed);
       setInfo(d);
       setCheckResult(null);
-    } catch (e: unknown) {
-      alert((e as Error).message);
+      toast.success("Domaine enregistré. Configurez votre DNS pour vérifier.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erreur");
     } finally { setSaving(false); }
   };
 
   const remove = async () => {
     if (!confirm("Supprimer ce domaine personnalisé ?") || isMock) return;
-    await api.removeDomain().catch(() => {});
-    setInfo(v => v ? { ...v, domain: null, verified: false } : v);
-    setDomain("");
-    setCheckResult(null);
+    try {
+      await api.removeDomain();
+      setInfo(v => v ? { ...v, domain: null, verified: false } : v);
+      setDomain("");
+      setCheckResult(null);
+      toast.success("Domaine supprimé");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erreur");
+    }
   };
 
   const checkDns = async () => {
@@ -58,7 +70,14 @@ function DomainsPage() {
     try {
       const r = await api.checkDomain();
       setCheckResult({ verified: r.verified, resolved: r.resolved });
-      if (r.verified) load();
+      if (r.verified) {
+        toast.success("Domaine vérifié");
+        load();
+      } else {
+        toast.warning("DNS pas encore propagé. Réessayez dans quelques minutes.");
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erreur");
     } finally { setChecking(false); }
   };
 

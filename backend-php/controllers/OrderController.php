@@ -39,10 +39,19 @@ class OrderController {
         $b  = Http::body();
         $in = Http::require($b, ['customerName','phone','items']);
         if (!is_array($in['items']) || !$in['items']) Http::fail('Empty cart', 422);
+        if (count($in['items']) > 100) Http::fail('Cart too large', 422);
 
-        // Sanitise phone
+        // Validate inputs.
+        $name = trim((string)$in['customerName']);
+        if (mb_strlen($name) < 2 || mb_strlen($name) > 190) Http::fail('Invalid name', 422);
+
+        // Sanitise phone (digits + leading +).
         $phone = preg_replace('/[^\d+]/', '', $in['phone']);
-        if (strlen($phone) < 8) Http::fail('Invalid phone number', 422);
+        if (strlen($phone) < 8 || strlen($phone) > 20) Http::fail('Invalid phone number', 422);
+
+        if (isset($b['notes']) && mb_strlen((string)$b['notes']) > 2000) {
+            Http::fail('Notes too long', 422);
+        }
 
         $pdo = DB::pdo();
         $sst = $pdo->prepare('SELECT * FROM stores WHERE slug = ? LIMIT 1');
@@ -53,6 +62,20 @@ class OrderController {
         // Subscription guard — block checkout if plan expired
         if (!$store['plan_active'] || strtotime($store['plan_expires_at']) < time()) {
             Http::fail('Cette boutique est temporairement indisponible.', 503);
+        }
+
+        // Monthly order cap (0 = unlimited)
+        $cap = Http::planOrderLimit($store);
+        if ($cap > 0) {
+            $countSt = DB::pdo()->prepare(
+                "SELECT COUNT(*) FROM orders
+                 WHERE tenant_id = ?
+                   AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)"
+            );
+            $countSt->execute([$store['id']]);
+            if ((int)$countSt->fetchColumn() >= $cap) {
+                Http::fail('Cette boutique a atteint sa limite mensuelle de commandes.', 503);
+            }
         }
 
         $tid     = $store['id'];
@@ -92,22 +115,28 @@ class OrderController {
             $itemSt = $pdo->prepare(
                 'INSERT INTO order_items (order_id,product_id,name,qty,price) VALUES (?,?,?,?,?)'
             );
+            // Lock the row while we read it so concurrent orders can't oversell.
             $prodSt = $pdo->prepare(
-                'SELECT id, name, price, stock FROM products WHERE id = ? AND tenant_id = ? AND status = "active" LIMIT 1'
+                'SELECT id, name, price, stock FROM products
+                 WHERE id = ? AND tenant_id = ? AND status = "active" LIMIT 1
+                 FOR UPDATE'
+            );
+            $stockSt = $pdo->prepare(
+                'UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?'
             );
             foreach ($in['items'] as $it) {
                 $pid = $it['productId'] ?? null;
-                $qty = max(1, (int)($it['qty'] ?? 1));
+                $qty = max(1, min(999, (int)($it['qty'] ?? 1)));
                 if (!$pid) continue;
                 $prodSt->execute([$pid, $tid]);
                 $p = $prodSt->fetch();
                 if (!$p) continue;
+                // Skip product silently if out of stock — keeps checkout resilient.
+                if ((int)$p['stock'] < $qty) continue;
                 $price  = (float)$p['price'];
                 $total += $price * $qty;
                 $itemSt->execute([$orderId, $p['id'], $p['name'], $qty, $price]);
-                $pdo->prepare(
-                    'UPDATE products SET stock = GREATEST(stock - ?, 0) WHERE id = ?'
-                )->execute([$qty, $p['id']]);
+                $stockSt->execute([$qty, $p['id'], $qty]);
             }
 
             if ($total <= 0) {
@@ -174,6 +203,12 @@ class OrderController {
         $ctx = Http::ownedTenant();
         $tid = $ctx['store']['id'];
         $b   = Http::body();
+
+        // Verify the order exists and belongs to this tenant before updating.
+        $check = DB::pdo()->prepare('SELECT 1 FROM orders WHERE id = ? AND tenant_id = ? LIMIT 1');
+        $check->execute([$id, $tid]);
+        if (!$check->fetchColumn()) Http::fail('Order not found', 404);
+
         $map = [
             'customerName'    => 'customer_name',
             'customerPhone'   => 'customer_phone',
@@ -187,6 +222,13 @@ class OrderController {
             if (array_key_exists($k, $b)) {
                 if ($k === 'status' && !in_array($b[$k], ['pending','paid','shipped'], true)) {
                     Http::fail('Invalid status', 422);
+                }
+                if ($k === 'notes' && mb_strlen((string)$b[$k]) > 2000) {
+                    Http::fail('Notes too long', 422);
+                }
+                if (in_array($k, ['customerName','customerPhone','customerAddress','city'], true)
+                    && mb_strlen((string)$b[$k]) > 190) {
+                    Http::fail("$k too long", 422);
                 }
                 $fields[] = "$col = ?";
                 $vals[]   = $b[$k];

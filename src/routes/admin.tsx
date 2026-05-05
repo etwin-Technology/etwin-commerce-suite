@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, Link, useLocation, useNavigate } from "@tanstack/react-router";
 import {
   BarChart3, Users, Store, Globe, LogOut, Shield, LayoutDashboard,
-  Settings, Sliders, LayoutTemplate,
+  Settings, Sliders, LayoutTemplate, KeyRound,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { useEffect } from "react";
@@ -14,10 +14,11 @@ const adminNav = [
   { to: "/admin",          icon: LayoutDashboard, label: "Tableau de bord", superAdminOnly: false },
   { to: "/admin/users",    icon: Users,           label: "Utilisateurs",    superAdminOnly: false },
   { to: "/admin/stores",   icon: Store,           label: "Boutiques",       superAdminOnly: false },
+  { to: "/admin/access",   icon: KeyRound,        label: "Accès & Features",superAdminOnly: true  },
   { to: "/admin/domains",  icon: Globe,           label: "Domaines",        superAdminOnly: false },
   { to: "/admin/landing",  icon: LayoutTemplate,  label: "Page d'accueil",  superAdminOnly: true  },
   { to: "/admin/settings", icon: Settings,        label: "Paramètres",      superAdminOnly: true  },
-  { to: "/admin/plans",    icon: Sliders,         label: "Plans & Accès",   superAdminOnly: true  },
+  { to: "/admin/plans",    icon: Sliders,         label: "Plans",            superAdminOnly: true  },
 ];
 
 function AdminLayout() {

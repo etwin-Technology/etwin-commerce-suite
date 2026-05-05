@@ -226,9 +226,10 @@ class AdminController {
     public static function updatePlan(string $storeId): void {
         Http::requireRole('admin');
         $b      = Http::body();
-        $plan   = in_array($b['plan'] ?? '', ['trial','pro']) ? $b['plan'] : null;
-        $months = max(1, (int)($b['months'] ?? 1));
-        if (!$plan) Http::fail('plan required (trial|pro)', 422);
+        $plan   = in_array($b['plan'] ?? '', ['starter','pro','business','trial'], true) ? $b['plan'] : null;
+        // 1..36 months caps the worst-case mistake from a typo.
+        $months = max(1, min(36, (int)($b['months'] ?? 1)));
+        if (!$plan) Http::fail('plan required (starter|pro|business)', 422);
 
         $pdo = DB::pdo();
         $st  = $pdo->prepare('SELECT * FROM stores WHERE id = ? LIMIT 1');
@@ -236,9 +237,15 @@ class AdminController {
         $store = $st->fetch();
         if (!$store) Http::fail('Store not found', 404);
 
+        // Pull price from plan_catalog so admin doesn't desync on price changes.
+        $priceSt = $pdo->prepare('SELECT price_mad FROM plan_catalog WHERE id = ? AND active = 1');
+        $priceSt->execute([$plan]);
+        $price = $priceSt->fetchColumn();
+        if ($price === false) Http::fail("Plan '$plan' not in active catalog", 422);
+
         $base    = max(time(), strtotime($store['plan_expires_at']));
         $expires = date('Y-m-d H:i:s', strtotime("+{$months} months", $base));
-        $amount  = ($plan === 'pro') ? 99.00 * $months : 0.00;
+        $amount  = (float)$price * $months;
 
         $pdo->beginTransaction();
         try {
@@ -251,10 +258,11 @@ class AdminController {
             $pdo->commit();
         } catch (Throwable $e) {
             $pdo->rollBack();
+            error_log('[etwin/updatePlan] ' . $e->getMessage());
             Http::fail('Could not update plan', 500);
         }
 
-        Http::json(['ok' => true, 'plan' => $plan, 'expiresAt' => $expires]);
+        Http::json(['ok' => true, 'plan' => $plan, 'expiresAt' => $expires, 'amount' => $amount]);
     }
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -273,6 +281,7 @@ class AdminController {
         $pdo->prepare('UPDATE stores SET suspended = ?, suspended_reason = ? WHERE id = ?')
             ->execute([$next, $next ? $reason : null, $storeId]);
         Http::json(['ok' => true, 'suspended' => (bool)$next]);
+    }
 
     // ──────────────────────────────────────────────────────────────────────────
     //  Domains
@@ -396,7 +405,7 @@ class AdminController {
         $minPlan = $b['minPlan'] ?? null;
         $limit   = isset($b['trialLimit']) ? (int)$b['trialLimit'] : null;
 
-        if ($minPlan && !in_array($minPlan, ['trial','pro'])) Http::fail('Invalid plan', 422);
+        if ($minPlan && !in_array($minPlan, ['starter','pro','business','trial'], true)) Http::fail('Invalid plan', 422);
 
         $pdo = DB::pdo();
         $st  = $pdo->prepare('SELECT feature FROM plan_features WHERE feature = ? LIMIT 1');
@@ -413,6 +422,231 @@ class AdminController {
         $pdo->prepare("UPDATE plan_features SET " . implode(', ', $sets) . " WHERE feature = ?")
             ->execute($params);
 
+        Http::json(['ok' => true]);
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    //  Feature catalog (super_admin only) — list of all gateable features
+    // ──────────────────────────────────────────────────────────────────────────
+    public static function featureCatalog(): void {
+        Http::requireRole('super_admin');
+        $rows = DB::pdo()->query(
+            "SELECT feature, label_fr, label_ar, description, kind, default_min_plan, sort_order
+             FROM feature_catalog ORDER BY sort_order ASC"
+        )->fetchAll();
+        Http::json(array_map(fn($r) => [
+            'feature'        => $r['feature'],
+            'labelFr'        => $r['label_fr'],
+            'labelAr'        => $r['label_ar'],
+            'description'    => $r['description'],
+            'kind'           => $r['kind'],
+            'defaultMinPlan' => $r['default_min_plan'],
+            'sortOrder'      => (int)$r['sort_order'],
+        ], $rows));
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    //  Plan catalog (read for admin, edit for super_admin)
+    // ──────────────────────────────────────────────────────────────────────────
+    public static function planCatalog(): void {
+        Http::requireRole('admin');
+        $rows = DB::pdo()->query("SELECT * FROM plan_catalog ORDER BY sort_order ASC")->fetchAll();
+        Http::json(array_map([self::class, 'planRow'], $rows));
+    }
+
+    public static function updatePlanCatalog(string $planId): void {
+        Http::requireRole('super_admin');
+        $b = Http::body();
+        $allowed = [
+            'name' => 's', 'price_mad' => 'f', 'duration' => 's',
+            'product_limit' => 'i?', 'team_limit' => 'i', 'order_limit' => 'i',
+            'custom_domain' => 'b', 'telegram_bot' => 'b', 'pixels' => 'b',
+            'analytics' => 'b', 'remove_brand' => 'b', 'priority_supp' => 'b',
+            'excel_export' => 'b', 'recommended' => 'b', 'sort_order' => 'i',
+            'active' => 'b',
+        ];
+        $sets = []; $vals = [];
+        foreach ($allowed as $col => $type) {
+            if (!array_key_exists($col, $b)) continue;
+            $v = $b[$col];
+            switch ($type) {
+                case 'b':  $vals[] = $v ? 1 : 0;                              break;
+                case 'i':  $vals[] = (int)$v;                                  break;
+                case 'i?': $vals[] = $v === null || $v === '' ? null : (int)$v;break;
+                case 'f':  $vals[] = (float)$v;                                break;
+                default:   $vals[] = (string)$v;                               break;
+            }
+            $sets[] = "`$col` = ?";
+        }
+        if (!$sets) Http::fail('Nothing to update', 422);
+
+        $pdo = DB::pdo();
+        $check = $pdo->prepare('SELECT 1 FROM plan_catalog WHERE id = ?');
+        $check->execute([$planId]);
+        if (!$check->fetchColumn()) Http::fail('Plan not found', 404);
+
+        $vals[] = $planId;
+        $pdo->prepare("UPDATE plan_catalog SET " . implode(', ', $sets) . " WHERE id = ?")
+            ->execute($vals);
+
+        $st = $pdo->prepare("SELECT * FROM plan_catalog WHERE id = ?");
+        $st->execute([$planId]);
+        Http::json(self::planRow($st->fetch()));
+    }
+
+    private static function planRow(array $r): array {
+        return [
+            'id'            => $r['id'],
+            'name'          => $r['name'],
+            'price'         => (float)$r['price_mad'],
+            'duration'      => $r['duration'],
+            'productLimit'  => $r['product_limit'] === null ? null : (int)$r['product_limit'],
+            'teamLimit'     => (int)$r['team_limit'],
+            'orderLimit'    => (int)($r['order_limit'] ?? 0),
+            'customDomain'  => (bool)(int)$r['custom_domain'],
+            'telegramBot'   => (bool)(int)$r['telegram_bot'],
+            'pixels'        => (bool)(int)$r['pixels'],
+            'analytics'     => (bool)(int)$r['analytics'],
+            'removeBrand'   => (bool)(int)$r['remove_brand'],
+            'prioritySupp'  => (bool)(int)$r['priority_supp'],
+            'excelExport'   => (bool)(int)($r['excel_export'] ?? 1),
+            'recommended'   => (bool)(int)$r['recommended'],
+            'sortOrder'     => (int)$r['sort_order'],
+            'active'        => (bool)(int)$r['active'],
+        ];
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    //  Per-store feature access (super_admin only)
+    //  GET  /api/admin/stores/{id}/access
+    //  PATCH/POST /api/admin/stores/{id}/access  body: { feature, granted, value, reason, expiresAt }
+    //  DELETE /api/admin/stores/{id}/access/{feature}
+    // ──────────────────────────────────────────────────────────────────────────
+    public static function getStoreAccess(string $storeId): void {
+        Http::requireRole('super_admin');
+        $pdo = DB::pdo();
+
+        $st = $pdo->prepare('SELECT * FROM stores WHERE id = ? LIMIT 1');
+        $st->execute([$storeId]);
+        $store = $st->fetch();
+        if (!$store) Http::fail('Store not found', 404);
+
+        // Effective plan tier
+        $plan = $store['plan'] === 'trial' ? 'starter' : $store['plan'];
+        $planRow = $pdo->prepare('SELECT * FROM plan_catalog WHERE id = ? LIMIT 1');
+        $planRow->execute([$plan]);
+        $planData = $planRow->fetch() ?: [];
+
+        // Catalog of all features
+        $cat = $pdo->query("SELECT * FROM feature_catalog ORDER BY sort_order ASC")->fetchAll();
+
+        // Existing overrides for this store
+        $ovSt = $pdo->prepare(
+            'SELECT feature, granted, override_value, reason, expires_at, granted_at
+             FROM store_feature_overrides WHERE tenant_id = ?'
+        );
+        $ovSt->execute([$storeId]);
+        $overrides = [];
+        foreach ($ovSt->fetchAll() as $r) {
+            $overrides[$r['feature']] = [
+                'granted'   => (bool)(int)$r['granted'],
+                'value'     => $r['override_value'] === null ? null : (int)$r['override_value'],
+                'reason'    => $r['reason'],
+                'expiresAt' => $r['expires_at'],
+                'grantedAt' => $r['granted_at'],
+            ];
+        }
+
+        // Build per-feature effective view (plan flag + override + final result)
+        $features = [];
+        foreach ($cat as $c) {
+            $key = $c['feature'];
+            $planValue = self::planValueFor($key, $planData);
+            $ov = $overrides[$key] ?? null;
+            $features[] = [
+                'feature'       => $key,
+                'labelFr'       => $c['label_fr'],
+                'labelAr'       => $c['label_ar'],
+                'description'   => $c['description'],
+                'kind'          => $c['kind'],
+                'planValue'     => $planValue,
+                'override'      => $ov,
+                'effective'     => $ov !== null
+                    ? ($c['kind'] === 'boolean'
+                        ? ($ov['granted'] ? 'on' : 'off')
+                        : ($ov['granted'] ? ($ov['value'] ?? 'unlimited') : 'off'))
+                    : $planValue,
+            ];
+        }
+
+        Http::json([
+            'storeId'    => $storeId,
+            'storeName'  => $store['name'],
+            'plan'       => $plan,
+            'planActive' => (bool)$store['plan_active'],
+            'expiresAt'  => $store['plan_expires_at'],
+            'features'   => $features,
+        ]);
+    }
+
+    /** Translate a feature key into the value carried by the plan_catalog row. */
+    private static function planValueFor(string $feature, array $planData): mixed {
+        if (!$planData) return null;
+        return match ($feature) {
+            'custom_domain', 'telegram_bot', 'pixels', 'analytics',
+            'remove_brand', 'priority_supp', 'excel_export'
+                => (bool)(int)($planData[$feature] ?? 0) ? 'on' : 'off',
+            'product_limit'
+                => $planData['product_limit'] === null ? 'unlimited' : (int)$planData['product_limit'],
+            'team_limit' => (int)($planData['team_limit'] ?? 0),
+            'order_limit' => (int)($planData['order_limit'] ?? 0),
+            default => null,
+        };
+    }
+
+    public static function setStoreAccess(string $storeId): void {
+        $u = Http::requireRole('super_admin');
+        $b = Http::body();
+        $feature = trim((string)($b['feature'] ?? ''));
+        if (!$feature) Http::fail('feature required', 422);
+
+        $pdo = DB::pdo();
+        $check = $pdo->prepare('SELECT id FROM stores WHERE id = ?');
+        $check->execute([$storeId]);
+        if (!$check->fetchColumn()) Http::fail('Store not found', 404);
+
+        $catCheck = $pdo->prepare('SELECT kind FROM feature_catalog WHERE feature = ?');
+        $catCheck->execute([$feature]);
+        $kind = $catCheck->fetchColumn();
+        if ($kind === false) Http::fail('Unknown feature', 422);
+
+        $granted   = !empty($b['granted']);
+        $value     = isset($b['value']) && $b['value'] !== '' && $b['value'] !== null ? (int)$b['value'] : null;
+        $reason    = isset($b['reason']) ? mb_substr((string)$b['reason'], 0, 255) : null;
+        $expiresAt = !empty($b['expiresAt']) ? date('Y-m-d H:i:s', strtotime((string)$b['expiresAt'])) : null;
+
+        if ($kind === 'number' && $value !== null && $value < 0) Http::fail('Value must be >= 0', 422);
+
+        $pdo->prepare(
+            'INSERT INTO store_feature_overrides
+                (tenant_id, feature, granted, override_value, reason, granted_by, expires_at)
+             VALUES (?,?,?,?,?,?,?)
+             ON DUPLICATE KEY UPDATE
+                granted = VALUES(granted),
+                override_value = VALUES(override_value),
+                reason = VALUES(reason),
+                granted_by = VALUES(granted_by),
+                granted_at = CURRENT_TIMESTAMP,
+                expires_at = VALUES(expires_at)'
+        )->execute([$storeId, $feature, $granted ? 1 : 0, $value, $reason, $u['sub'], $expiresAt]);
+
+        Http::json(['ok' => true, 'feature' => $feature]);
+    }
+
+    public static function clearStoreAccess(string $storeId, string $feature): void {
+        Http::requireRole('super_admin');
+        DB::pdo()->prepare('DELETE FROM store_feature_overrides WHERE tenant_id = ? AND feature = ?')
+            ->execute([$storeId, $feature]);
         Http::json(['ok' => true]);
     }
 

@@ -2,10 +2,13 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { Check, Copy, Image as ImageIcon, MessageCircle, Phone, Rocket, ShoppingBag } from "lucide-react";
+import { toast } from "sonner";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { RequireAuth } from "@/components/RequireAuth";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api/client";
+
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MB upload cap
 
 export const Route = createFileRoute("/onboarding")({
   head: () => ({ meta: [{ title: "Onboarding — ETWIN" }] }),
@@ -52,18 +55,32 @@ function Onboarding() {
     (step === 3 && /^\+?212/.test(form.whatsapp.replace(/\s/g, "")) && form.city.trim());
 
   const handleImageFile = (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      toast.error("Fichier invalide — choisissez une image.");
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      toast.error("Image trop lourde (max 5 Mo).");
+      return;
+    }
     const reader = new FileReader();
     reader.onload = () => update("image")(reader.result as string);
+    reader.onerror = () => toast.error("Erreur de lecture du fichier.");
     reader.readAsDataURL(file);
   };
 
   const launch = async () => {
+    const price = Number(form.price);
+    if (!form.productName.trim() || !(price > 0) || !form.image.trim()) {
+      toast.error("Complétez le produit, l'image et le prix.");
+      return;
+    }
     setSubmitting(true);
     try {
       await api.createProduct(store.id, {
-        name: form.productName,
+        name: form.productName.trim(),
         description: "",
-        price: Number(form.price),
+        price,
         originalPrice: form.originalPrice ? Number(form.originalPrice) : null,
         image: form.image,
         stock: 10,
@@ -76,6 +93,8 @@ function Onboarding() {
       });
       refreshStore(updated);
       setDone(true);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erreur lors de la création");
     } finally {
       setSubmitting(false);
     }

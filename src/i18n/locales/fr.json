@@ -225,5 +225,19 @@
     "loading": "Chargement…",
     "error": "Une erreur est survenue.",
     "back": "Retour"
+  },
+  "permissions": {
+    "orders.read": "Voir les commandes",
+    "orders.write": "Modifier les commandes",
+    "orders.delete": "Supprimer les commandes",
+    "products.read": "Voir les produits",
+    "products.write": "Modifier les produits",
+    "products.delete": "Supprimer les produits",
+    "customers.read": "Voir les clients",
+    "customers.write": "Modifier les clients",
+    "customers.delete": "Supprimer les clients",
+    "settings.read": "Voir les paramètres",
+    "settings.write": "Modifier les paramètres",
+    "billing.access": "Gérer la facturation"
   }
 }

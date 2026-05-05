@@ -27,6 +27,7 @@ class StoreController {
         $ctx = Http::ownedTenant();
         if ($ctx['store']['id'] !== $id) Http::fail('Forbidden', 403);
         $b = Http::body();
+        $store = $ctx['store'];
 
         $fields = []; $vals = [];
         $map = [
@@ -43,23 +44,47 @@ class StoreController {
             }
         }
         if (isset($b['notifications']) && is_array($b['notifications'])) {
-            if (array_key_exists('whatsappNumber', $b['notifications'])) {
+            $n = $b['notifications'];
+            if (array_key_exists('whatsappNumber', $n)) {
+                $num = trim((string)$n['whatsappNumber']);
+                if ($num !== '' && !Http::storeHasFeature($store, 'whatsapp_orders')) {
+                    Http::fail("Le bouton WhatsApp n'est pas inclus dans votre plan.", 402);
+                }
+                if ($num !== '' && (strlen(preg_replace('/\D/', '', $num)) < 8 || mb_strlen($num) > 30)) {
+                    Http::fail('Numéro WhatsApp invalide', 422);
+                }
                 $fields[] = 'whatsapp_number = ?';
-                $vals[]   = (string)$b['notifications']['whatsappNumber'];
+                $vals[]   = $num;
             }
-            if (array_key_exists('telegramChatId', $b['notifications'])) {
+            if (array_key_exists('telegramChatId', $n)) {
+                // Allow clearing the chat id at any time, but require feature to set one.
+                if (!empty($n['telegramChatId']) && !Http::storeHasFeature($store, 'telegram_bot')) {
+                    Http::fail("Telegram n'est pas inclus dans votre plan.", 402);
+                }
                 $fields[] = 'telegram_chat_id = ?';
-                $vals[]   = $b['notifications']['telegramChatId'];
+                $vals[]   = $n['telegramChatId'] ?: null;
             }
         }
         if (isset($b['tracking']) && is_array($b['tracking'])) {
-            if (array_key_exists('facebookPixel', $b['tracking'])) {
-                $fields[] = 'facebook_pixel = ?';
-                $vals[]   = $b['tracking']['facebookPixel'];
+            $tr = $b['tracking'];
+            $touchingPixel = array_key_exists('facebookPixel', $tr) || array_key_exists('tiktokPixel', $tr);
+            $hasValue = (!empty($tr['facebookPixel']) || !empty($tr['tiktokPixel']));
+            if ($touchingPixel && $hasValue && !Http::storeHasFeature($store, 'pixels')) {
+                Http::fail("Les pixels publicitaires ne sont pas inclus dans votre plan.", 402);
             }
-            if (array_key_exists('tiktokPixel', $b['tracking'])) {
-                $fields[] = 'tiktok_pixel = ?';
-                $vals[]   = $b['tracking']['tiktokPixel'];
+            if (array_key_exists('facebookPixel', $tr)) {
+                $v = $tr['facebookPixel'];
+                if ($v !== null && $v !== '' && !preg_match('/^[A-Za-z0-9_-]{6,40}$/', (string)$v)) {
+                    Http::fail('Pixel Facebook invalide', 422);
+                }
+                $fields[] = 'facebook_pixel = ?'; $vals[] = $v ?: null;
+            }
+            if (array_key_exists('tiktokPixel', $tr)) {
+                $v = $tr['tiktokPixel'];
+                if ($v !== null && $v !== '' && !preg_match('/^[A-Za-z0-9_-]{6,40}$/', (string)$v)) {
+                    Http::fail('Pixel TikTok invalide', 422);
+                }
+                $fields[] = 'tiktok_pixel = ?'; $vals[] = $v ?: null;
             }
         }
         if ($fields) {
@@ -70,6 +95,15 @@ class StoreController {
         $st = DB::pdo()->prepare('SELECT * FROM stores WHERE id = ?');
         $st->execute([$id]);
         Http::json(Mapper::store($st->fetch()));
+    }
+
+    // ──────────────────────────────────────────────────────────
+    //  Effective feature flags for current tenant
+    //  Used by the dashboard to lock UI for features the store can't use.
+    // ──────────────────────────────────────────────────────────
+    public static function features(): void {
+        $ctx = Http::ownedTenant();
+        Http::json(Http::effectiveFeatures($ctx['store']));
     }
 
     // ──────────────────────────────────────────────────────────
@@ -103,11 +137,26 @@ class StoreController {
         if ($ctx['store']['id'] !== $id) Http::fail('Forbidden', 403);
         $b = Http::body();
 
-        $allowed = ['logoUrl','menuLinks','showSearch','announcementBar','announcementText'];
+        $allowed = [
+            'logoUrl','menuLinks','showSearch','announcementBar','announcementText',
+            // Modern display options (all optional)
+            'bannerImageUrl','heroTitle','heroSubtitle','heroCta','productColumns',
+            'showTrustBar','showLiveBuyer','showRatings','showScarcity',
+        ];
         $current = json_decode($ctx['store']['header_settings'] ?? '{}', true) ?: [];
 
         foreach ($allowed as $k) {
-            if (array_key_exists($k, $b)) $current[$k] = $b[$k];
+            if (!array_key_exists($k, $b)) continue;
+            $v = $b[$k];
+            // Light validation for the bigger free-text fields.
+            if (in_array($k, ['heroTitle','heroSubtitle','heroCta','announcementText'], true)
+                && is_string($v) && mb_strlen($v) > 200) {
+                Http::fail("$k too long (max 200 chars)", 422);
+            }
+            if ($k === 'productColumns' && !in_array((int)$v, [2,3,4], true)) {
+                Http::fail('productColumns must be 2, 3 or 4', 422);
+            }
+            $current[$k] = $v;
         }
 
         // Sync logoUrl to main stores.logo_url if provided

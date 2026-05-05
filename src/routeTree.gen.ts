@@ -33,6 +33,7 @@ import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminPlansRouteImport } from './routes/admin.plans'
 import { Route as AdminLandingRouteImport } from './routes/admin.landing'
 import { Route as AdminDomainsRouteImport } from './routes/admin.domains'
+import { Route as AdminAccessRouteImport } from './routes/admin.access'
 
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
@@ -154,6 +155,11 @@ const AdminDomainsRoute = AdminDomainsRouteImport.update({
   path: '/domains',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminAccessRoute = AdminAccessRouteImport.update({
+  id: '/access',
+  path: '/access',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -162,6 +168,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/register': typeof RegisterRoute
+  '/admin/access': typeof AdminAccessRoute
   '/admin/domains': typeof AdminDomainsRoute
   '/admin/landing': typeof AdminLandingRoute
   '/admin/plans': typeof AdminPlansRoute
@@ -186,6 +193,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/register': typeof RegisterRoute
+  '/admin/access': typeof AdminAccessRoute
   '/admin/domains': typeof AdminDomainsRoute
   '/admin/landing': typeof AdminLandingRoute
   '/admin/plans': typeof AdminPlansRoute
@@ -213,6 +221,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/register': typeof RegisterRoute
+  '/admin/access': typeof AdminAccessRoute
   '/admin/domains': typeof AdminDomainsRoute
   '/admin/landing': typeof AdminLandingRoute
   '/admin/plans': typeof AdminPlansRoute
@@ -241,6 +250,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/register'
+    | '/admin/access'
     | '/admin/domains'
     | '/admin/landing'
     | '/admin/plans'
@@ -265,6 +275,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/register'
+    | '/admin/access'
     | '/admin/domains'
     | '/admin/landing'
     | '/admin/plans'
@@ -291,6 +302,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/register'
+    | '/admin/access'
     | '/admin/domains'
     | '/admin/landing'
     | '/admin/plans'
@@ -491,10 +503,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminDomainsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/access': {
+      id: '/admin/access'
+      path: '/access'
+      fullPath: '/admin/access'
+      preLoaderRoute: typeof AdminAccessRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
 interface AdminRouteChildren {
+  AdminAccessRoute: typeof AdminAccessRoute
   AdminDomainsRoute: typeof AdminDomainsRoute
   AdminLandingRoute: typeof AdminLandingRoute
   AdminPlansRoute: typeof AdminPlansRoute
@@ -505,6 +525,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminAccessRoute: AdminAccessRoute,
   AdminDomainsRoute: AdminDomainsRoute,
   AdminLandingRoute: AdminLandingRoute,
   AdminPlansRoute: AdminPlansRoute,

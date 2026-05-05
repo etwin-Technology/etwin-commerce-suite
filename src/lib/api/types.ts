@@ -59,6 +59,25 @@ export interface StoreHeader {
   showSearch: boolean;
   announcementBar?: boolean;
   announcementText?: string;
+  // ─── Modern display options (all optional, falls back to defaults) ──
+  /** Optional hero banner image URL (rendered behind the hero gradient). */
+  bannerImageUrl?: string | null;
+  /** Custom hero title shown on the storefront landing area. */
+  heroTitle?: string;
+  /** Custom hero subtitle. */
+  heroSubtitle?: string;
+  /** CTA button label (e.g. "Voir les produits"). Empty hides the button. */
+  heroCta?: string;
+  /** Product grid columns on desktop (2, 3 or 4). Mobile is always 2. */
+  productColumns?: 2 | 3 | 4;
+  /** Toggle the COD / Free shipping trust bar under the hero. */
+  showTrustBar?: boolean;
+  /** Toggle the rotating "X bought from Y" social-proof pulse. */
+  showLiveBuyer?: boolean;
+  /** Toggle the 4.8★ ratings block in the product sheet. */
+  showRatings?: boolean;
+  /** Toggle the "🔥 N left" scarcity badge on cards/sheet. */
+  showScarcity?: boolean;
 }
 
 export interface StoreSocials {
@@ -344,4 +363,97 @@ export interface StoreMemberDTO {
   permissions: Record<string, boolean>;
   active: boolean;
   invitedAt: string;
+}
+
+// ─── Feature flags / overrides (super-admin) ────────────────────────────────
+
+export type FeatureKey =
+  | "custom_domain"
+  | "telegram_bot"
+  | "pixels"
+  | "analytics"
+  | "remove_brand"
+  | "priority_supp"
+  | "excel_export"
+  | "whatsapp_orders"
+  | "product_limit"
+  | "team_limit"
+  | "order_limit";
+
+/**
+ * Effective feature flags for the current tenant.
+ * Boolean features → true/false. Limit features → number (0 = unlimited for order_limit;
+ * null = unlimited for product_limit; 0 = blocked otherwise).
+ */
+export interface EffectiveFeatures {
+  custom_domain: boolean;
+  telegram_bot: boolean;
+  pixels: boolean;
+  analytics: boolean;
+  remove_brand: boolean;
+  priority_supp: boolean;
+  excel_export: boolean;
+  whatsapp_orders: boolean;
+  product_limit: number | null;
+  team_limit: number;
+  order_limit: number;
+}
+
+export interface FeatureCatalogItem {
+  feature: FeatureKey;
+  labelFr: string;
+  labelAr: string;
+  description: string | null;
+  kind: "boolean" | "number";
+  defaultMinPlan: "starter" | "pro" | "business";
+  sortOrder: number;
+}
+
+export interface StoreFeatureOverride {
+  granted: boolean;
+  value: number | null;
+  reason: string | null;
+  expiresAt: string | null;
+  grantedAt: string;
+}
+
+export interface StoreFeatureRow {
+  feature: FeatureKey;
+  labelFr: string;
+  labelAr: string;
+  description: string | null;
+  kind: "boolean" | "number";
+  /** "on" | "off" for boolean; number | "unlimited" for number features */
+  planValue: "on" | "off" | "unlimited" | number | null;
+  override: StoreFeatureOverride | null;
+  effective: "on" | "off" | "unlimited" | number | null;
+}
+
+export interface StoreAccessResponse {
+  storeId: string;
+  storeName: string;
+  plan: "starter" | "pro" | "business";
+  planActive: boolean;
+  expiresAt: string;
+  features: StoreFeatureRow[];
+}
+
+export interface PlanCatalogEntry {
+  id: "starter" | "pro" | "business";
+  name: string;
+  price: number;
+  duration: string;
+  productLimit: number | null;
+  teamLimit: number;
+  orderLimit: number;
+  customDomain: boolean;
+  telegramBot: boolean;
+  pixels: boolean;
+  analytics: boolean;
+  removeBrand: boolean;
+  prioritySupp: boolean;
+  excelExport: boolean;
+  recommended: boolean;
+  sortOrder: number;
+  active: boolean;
 }

@@ -1,8 +1,13 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState, useCallback } from "react";
-import { Check, Eye, EyeOff, Palette, LayoutTemplate, AlignLeft, Plus, Trash2, Type } from "lucide-react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
+import {
+  Check, Eye, EyeOff, Palette, LayoutTemplate, AlignLeft, Plus, Trash2,
+  Sparkles, Grid3x3, ExternalLink,
+} from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api/client";
+import { ImageUploader } from "@/components/ImageUploader";
 import type { MenuLink, StoreFooter, StoreHeader, StoreTheme } from "@/lib/api/types";
 
 export const Route = createFileRoute("/dashboard/customize")({
@@ -79,6 +84,35 @@ function SaveBtn({ loading, saved, onClick }: { loading: boolean; saved: boolean
   );
 }
 
+/** Compact pill-style toggle for boolean display options. */
+function Toggle({
+  label, checked, onChange,
+}: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className={`flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl border text-sm text-start transition-colors ${
+        checked ? "border-primary/40 bg-primary/5" : "border-border hover:border-primary/30 bg-card"
+      }`}
+    >
+      <span className="font-medium text-xs">{label}</span>
+      <span
+        className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors ${
+          checked ? "bg-primary" : "bg-muted"
+        }`}
+        aria-hidden
+      >
+        <span
+          className={`absolute top-0.5 size-4 rounded-full bg-white shadow transition-transform ${
+            checked ? "translate-x-[18px] rtl:-translate-x-[18px]" : "translate-x-0.5 rtl:-translate-x-0.5"
+          }`}
+        />
+      </span>
+    </button>
+  );
+}
+
 // ─── Live Preview Mini-Component ─────────────────────────────────────────────
 function StorePreview({ theme, header, storeName }: {
   theme: StoreTheme;
@@ -151,7 +185,22 @@ function CustomizePage() {
   const [savedTheme, setSavedTheme]   = useState(false);
 
   // Header
-  const defaultHeader: StoreHeader = { logoUrl: store?.logoUrl ?? null, menuLinks: [], showSearch: false, announcementBar: false, announcementText: "" };
+  const defaultHeader: StoreHeader = {
+    logoUrl: store?.logoUrl ?? null,
+    menuLinks: [],
+    showSearch: false,
+    announcementBar: false,
+    announcementText: "",
+    bannerImageUrl: null,
+    heroTitle: store?.name ?? "",
+    heroSubtitle: "",
+    heroCta: "",
+    productColumns: 3,
+    showTrustBar: true,
+    showLiveBuyer: true,
+    showRatings: true,
+    showScarcity: true,
+  };
   const [header, setHeader]   = useState<StoreHeader>({ ...defaultHeader, ...(store?.header ?? {}) });
   const [savingHeader, setSavingHeader] = useState(false);
   const [savedHeader, setSavedHeader]   = useState(false);
@@ -180,7 +229,10 @@ function CustomizePage() {
       const updated = await api.updateHeader(store.id, header);
       refreshStore(updated);
       setSavedHeader(true);
+      toast.success("En-tête enregistré");
       setTimeout(() => setSavedHeader(false), 2000);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erreur");
     } finally { setSavingHeader(false); }
   };
 
@@ -217,18 +269,29 @@ function CustomizePage() {
   return (
     <div className="max-w-7xl mx-auto">
       {/* Page header */}
-      <div className="flex items-start justify-between mb-6">
+      <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold">Personnaliser la boutique</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Modifiez les couleurs, polices et contenus de votre boutique</p>
+          <p className="text-sm text-muted-foreground mt-0.5">Modifiez le hero, les couleurs, le contenu et l'affichage des produits.</p>
         </div>
-        <button
-          onClick={() => setShowPreview(v => !v)}
-          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-full px-4 py-2 hover:bg-accent transition-colors"
-        >
-          {showPreview ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-          {showPreview ? "Masquer" : "Aperçu"}
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/store/$slug"
+            params={{ slug: store.slug }}
+            target="_blank"
+            className="flex items-center gap-2 text-sm bg-primary text-primary-foreground rounded-full px-4 py-2 hover:bg-primary/90 transition-colors"
+          >
+            <ExternalLink className="size-4" />
+            Voir la boutique
+          </Link>
+          <button
+            onClick={() => setShowPreview(v => !v)}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-full px-4 py-2 hover:bg-accent transition-colors"
+          >
+            {showPreview ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+            {showPreview ? "Masquer" : "Aperçu"}
+          </button>
+        </div>
       </div>
 
       <div className={`grid gap-6 ${showPreview ? "lg:grid-cols-[1fr_320px]" : "grid-cols-1"}`}>
@@ -314,6 +377,112 @@ function CustomizePage() {
 
             <div className="flex justify-end">
               <SaveBtn loading={savingTheme} saved={savedTheme} onClick={saveTheme} />
+            </div>
+          </SectionCard>
+
+          {/* ── Hero banner ───────────────────────────────────────────────── */}
+          <SectionCard title="Bannière & Hero" icon={Sparkles}>
+            <div className="space-y-4">
+              <div>
+                <Label>Image de bannière (optionnel)</Label>
+                <ImageUploader
+                  value={header.bannerImageUrl ?? null}
+                  onChange={(url) => setHeader(h => ({ ...h, bannerImageUrl: url ?? null }))}
+                  aspect="wide"
+                  label="Cliquer pour choisir une image (1600 × 600 idéal)"
+                />
+                <p className="text-[11px] text-muted-foreground mt-1.5">
+                  Si vide, un dégradé de votre couleur principale est utilisé.
+                </p>
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div>
+                  <Label>Titre principal</Label>
+                  <Input
+                    value={header.heroTitle ?? ""}
+                    onChange={v => setHeader(h => ({ ...h, heroTitle: v }))}
+                    placeholder={store.name}
+                  />
+                </div>
+                <div>
+                  <Label>Bouton d'appel à l'action (optionnel)</Label>
+                  <Input
+                    value={header.heroCta ?? ""}
+                    onChange={v => setHeader(h => ({ ...h, heroCta: v }))}
+                    placeholder="Voir les produits"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label>Sous-titre</Label>
+                <textarea
+                  value={header.heroSubtitle ?? ""}
+                  onChange={e => setHeader(h => ({ ...h, heroSubtitle: e.target.value }))}
+                  placeholder="Découvrez nos produits — paiement à la livraison."
+                  rows={2}
+                  maxLength={200}
+                  className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm focus:outline-none resize-none"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <SaveBtn loading={savingHeader} saved={savedHeader} onClick={saveHeader} />
+            </div>
+          </SectionCard>
+
+          {/* ── Display options ──────────────────────────────────────────── */}
+          <SectionCard title="Affichage & Mise en page" icon={Grid3x3}>
+            <div className="space-y-5">
+              <div>
+                <Label>Colonnes de produits (sur grand écran)</Label>
+                <div className="flex gap-2">
+                  {[2, 3, 4].map(n => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setHeader(h => ({ ...h, productColumns: n as 2 | 3 | 4 }))}
+                      className={`flex-1 py-2.5 rounded-xl border text-sm font-bold transition-colors ${
+                        (header.productColumns ?? 3) === n
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "border-border hover:border-primary/50"
+                      }`}
+                    >
+                      {n} colonnes
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <Label>Éléments d'ambiance</Label>
+                <div className="grid sm:grid-cols-2 gap-2">
+                  <Toggle
+                    label="Barre de confiance (livraison, COD)"
+                    checked={header.showTrustBar !== false}
+                    onChange={v => setHeader(h => ({ ...h, showTrustBar: v }))}
+                  />
+                  <Toggle
+                    label="Pulsation « X a commandé »"
+                    checked={header.showLiveBuyer !== false}
+                    onChange={v => setHeader(h => ({ ...h, showLiveBuyer: v }))}
+                  />
+                  <Toggle
+                    label="Bloc avis clients (4.8★)"
+                    checked={header.showRatings !== false}
+                    onChange={v => setHeader(h => ({ ...h, showRatings: v }))}
+                  />
+                  <Toggle
+                    label="Badges « Plus que N en stock »"
+                    checked={header.showScarcity !== false}
+                    onChange={v => setHeader(h => ({ ...h, showScarcity: v }))}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <SaveBtn loading={savingHeader} saved={savedHeader} onClick={saveHeader} />
             </div>
           </SectionCard>
 

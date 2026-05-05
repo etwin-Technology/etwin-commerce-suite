@@ -225,5 +225,19 @@
     "loading": "كنحمل…",
     "error": "كاين خطأ.",
     "back": "ورا"
+  },
+  "permissions": {
+    "orders.read": "شوف الطلبات",
+    "orders.write": "بدّل الطلبات",
+    "orders.delete": "حيّد الطلبات",
+    "products.read": "شوف المنتوجات",
+    "products.write": "بدّل المنتوجات",
+    "products.delete": "حيّد المنتوجات",
+    "customers.read": "شوف الزبناء",
+    "customers.write": "بدّل الزبناء",
+    "customers.delete": "حيّد الزبناء",
+    "settings.read": "شوف الإعدادات",
+    "settings.write": "بدّل الإعدادات",
+    "billing.access": "تدبير الفوترة"
   }
 }

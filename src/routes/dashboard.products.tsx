@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Plus, Trash2, Pencil, X, FileSpreadsheet, Upload, Download, AlertTriangle } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api/client";
 import type { Product, ProductStatus } from "@/lib/api/types";
@@ -9,6 +10,7 @@ import { ImageUploader } from "@/components/ImageUploader";
 import { DataToolbar } from "@/components/DataToolbar";
 import { exportProducts, downloadProductTemplate, parseProductsFile } from "@/lib/excel";
 import { productLimit } from "@/lib/planLimits";
+import { useStoreFeatures } from "@/hooks/useStoreFeatures";
 
 export const Route = createFileRoute("/dashboard/products")({
   component: ProductsPage,
@@ -27,6 +29,8 @@ const blank = (): Omit<Product, "id" | "tenantId" | "createdAt"> => ({
 function ProductsPage() {
   const { t } = useTranslation();
   const { store } = useAuth();
+  const { features } = useStoreFeatures();
+  const excelLocked = !!features && !features.excel_export;
   const [items, setItems]       = useState<Product[]>([]);
   const [loading, setLoading]   = useState(true);
   const [editing, setEditing]   = useState<Product | null>(null);
@@ -52,7 +56,10 @@ function ProductsPage() {
   const refresh = () => {
     if (!store) return;
     setLoading(true);
-    api.listProducts(store.id).then(setItems).finally(() => setLoading(false));
+    api.listProducts(store.id)
+      .then(setItems)
+      .catch(e => toast.error(e instanceof Error ? e.message : "Échec du chargement"))
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => {
@@ -76,15 +83,30 @@ function ProductsPage() {
   };
   const save = async () => {
     if (!store) return;
-    if (editing) await api.updateProduct(store.id, editing.id, draft);
-    else await api.createProduct(store.id, draft);
-    cancel();
-    refresh();
+    if (!draft.name.trim()) { toast.error("Nom du produit requis"); return; }
+    if (!(draft.price > 0)) { toast.error("Prix doit être supérieur à 0"); return; }
+    if (!draft.image.trim()) { toast.error("Image principale requise"); return; }
+    if (draft.stock < 0) { toast.error("Stock ne peut pas être négatif"); return; }
+    try {
+      if (editing) await api.updateProduct(store.id, editing.id, draft);
+      else await api.createProduct(store.id, draft);
+      toast.success(editing ? "Produit mis à jour" : "Produit ajouté");
+      cancel();
+      refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erreur");
+    }
   };
   const remove = async (id: string) => {
     if (!store) return;
-    await api.deleteProduct(store.id, id);
-    refresh();
+    if (!confirm("Supprimer ce produit ?")) return;
+    try {
+      await api.deleteProduct(store.id, id);
+      toast.success("Produit supprimé");
+      refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erreur");
+    }
   };
 
   const fileRef = useRef<HTMLInputElement>(null);
@@ -130,8 +152,12 @@ function ProductsPage() {
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <button
-            onClick={() => exportProducts(items, store?.slug ?? "store")}
-            disabled={items.length === 0}
+            onClick={() => {
+              if (excelLocked) { toast.error("Export Excel verrouillé pour votre plan."); return; }
+              exportProducts(items, store?.slug ?? "store");
+            }}
+            disabled={items.length === 0 || excelLocked}
+            title={excelLocked ? "Export Excel verrouillé pour votre plan" : "Exporter en .xlsx"}
             className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-2 text-sm font-medium hover:bg-accent disabled:opacity-50"
           >
             <FileSpreadsheet className="size-4 text-emerald-600" />

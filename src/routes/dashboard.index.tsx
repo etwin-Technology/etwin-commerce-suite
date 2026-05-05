@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { useEffect, useState } from "react";
 import { ArrowDown, ArrowUp, Bell, Check, ChevronRight, MessageCircle, Send, Sparkles, Wallet } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api/client";
 import type { DashboardStats, Order } from "@/lib/api/types";
@@ -23,13 +24,17 @@ function DashboardIndex() {
   const reload = () => {
     if (!store) return;
     setLoading(true);
-    Promise.all([api.dashboardStats(store.id), api.listOrders(store.id), api.listProducts(store.id)])
-      .then(([s, o, p]) => {
-        setStats(s);
-        setOrders(o.slice(0, 5));
-        setProductCount(p.length);
-      })
-      .finally(() => setLoading(false));
+    // Use allSettled so a single API failure doesn't blank the entire dashboard.
+    Promise.allSettled([
+      api.dashboardStats(store.id),
+      api.listOrders(store.id),
+      api.listProducts(store.id),
+    ]).then(([s, o, p]) => {
+      if (s.status === "fulfilled") setStats(s.value); else toast.error("Statistiques indisponibles");
+      if (o.status === "fulfilled") setOrders(o.value.slice(0, 5));
+      if (p.status === "fulfilled") setProductCount(p.value.length);
+      setLoading(false);
+    });
   };
   useEffect(reload, [store?.id]);
 
@@ -48,8 +53,13 @@ function DashboardIndex() {
 
   const confirm = async (id: string) => {
     if (!store) return;
-    await api.confirmOrder(store.id, id);
-    reload();
+    try {
+      await api.confirmOrder(store.id, id);
+      toast.success("Commande confirmée");
+      reload();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erreur");
+    }
   };
 
   return (

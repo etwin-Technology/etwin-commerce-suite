@@ -22,12 +22,17 @@ require __DIR__ . '/../controllers/UploadController.php';
 require __DIR__ . '/../controllers/MemberController.php';
 
 set_exception_handler(function (Throwable $e) {
+    $cfg = @require __DIR__ . '/../config/config.php';
+    $isProd = is_array($cfg) && !empty($cfg['is_prod']);
+    // Trace goes to logs only — never to clients.
     error_log('[etwin] ' . $e->getMessage() . "\n" . $e->getTraceAsString());
     if (!headers_sent()) {
         header('Content-Type: application/json; charset=utf-8');
         http_response_code(500);
     }
-    echo json_encode(['error' => 'Server error']);
+    echo json_encode($isProd
+        ? ['error' => 'Server error']
+        : ['error' => 'Server error', 'debug' => $e->getMessage()]);
 });
 
 Http::bootstrap();
@@ -49,6 +54,7 @@ if (route('POST', $method, '/api/auth/register', $path) !== false) AuthControlle
 if (route('POST', $method, '/api/auth/login',    $path) !== false) AuthController::login();
 
 // ── STORES ────────────────────────────────────────────────────────────────────
+if (route('GET',   $method, '/api/features',              $path) !== false) StoreController::features();
 if (($p = route('GET',   $method, '/api/stores/{slug}',         $path)) !== false) StoreController::getBySlug($p['slug']);
 if (($p = route('PATCH', $method, '/api/stores/{id}',           $path)) !== false) StoreController::update($p['id']);
 if (($p = route('PATCH', $method, '/api/stores/{id}/theme',     $path)) !== false) StoreController::updateTheme($p['id']);
@@ -119,6 +125,14 @@ if (route('GET',   $method, '/api/admin/settings',       $path) !== false) Admin
 if (route('PATCH', $method, '/api/admin/settings',       $path) !== false) AdminController::updateSettings();
 if (route('GET',   $method, '/api/admin/plan-features',  $path) !== false) AdminController::getPlanFeatures();
 if (($p = route('PATCH', $method, '/api/admin/plan-features/{feature}', $path)) !== false) AdminController::updatePlanFeature($p['feature']);
+
+// ── ADMIN — feature catalog & per-store access (super_admin) ─────────────────
+if (route('GET',   $method, '/api/admin/feature-catalog', $path) !== false) AdminController::featureCatalog();
+if (route('GET',   $method, '/api/admin/plan-catalog',    $path) !== false) AdminController::planCatalog();
+if (($p = route('PATCH', $method, '/api/admin/plan-catalog/{id}', $path)) !== false) AdminController::updatePlanCatalog($p['id']);
+if (($p = route('GET',    $method, '/api/admin/stores/{id}/access', $path)) !== false) AdminController::getStoreAccess($p['id']);
+if (($p = route('POST',   $method, '/api/admin/stores/{id}/access', $path)) !== false) AdminController::setStoreAccess($p['id']);
+if (($p = route('DELETE', $method, '/api/admin/stores/{id}/access/{feature}', $path)) !== false) AdminController::clearStoreAccess($p['id'], $p['feature']);
 
 // ── PUBLIC settings (for landing page) ───────────────────────────────────────
 if (route('GET', $method, '/api/public/settings', $path) !== false) AdminController::publicSettings();

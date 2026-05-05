@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Check, CreditCard, Zap, Clock, History, Crown } from "lucide-react";
+import { toast } from "sonner";
 import { api, useMockApi } from "@/lib/api/client";
 import { useAuth } from "@/lib/auth";
 import type { SubscriptionInfo } from "@/lib/api/types";
@@ -36,24 +37,24 @@ function SubscriptionPage() {
     }
     api.getSubscription()
       .then(setInfo)
-      .catch(() => {})
+      .catch(e => toast.error(e instanceof Error ? e.message : "Échec du chargement"))
       .finally(() => setLoading(false));
   }, [store?.id]);
 
   const upgrade = async (planId: string) => {
-    if (planId !== "pro") return;
+    if (!["starter","pro","business"].includes(planId)) return;
     setUpgrading(true);
     try {
-      await api.upgradeSubscription("pro");
+      await api.upgradeSubscription(planId as "starter" | "pro" | "business");
       const updated = await api.getSubscription();
       setInfo(updated);
-      // Refresh auth store
       if (store) {
         const s = await api.getStoreBySlug(store.slug);
         if (s) refreshStore(s);
       }
-    } catch (e: unknown) {
-      alert((e as Error).message);
+      toast.success(`Plan ${planId.charAt(0).toUpperCase() + planId.slice(1)} activé !`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erreur lors de la mise à niveau");
     } finally { setUpgrading(false); }
   };
 
@@ -62,6 +63,8 @@ function SubscriptionPage() {
 
   const days = info.daysLeft;
   const isPro = info.plan === "pro";
+  const isBusiness = info.plan === "business";
+  const planLabel = isBusiness ? "Business" : isPro ? "Pro" : info.plan === "starter" ? "Starter" : "Essai gratuit";
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -72,17 +75,18 @@ function SubscriptionPage() {
 
       {/* Current plan banner */}
       <div className={`rounded-2xl p-6 mb-8 flex items-center justify-between gap-4 ${
+        isBusiness ? "bg-gradient-to-r from-emerald-600 to-emerald-800 text-white" :
         isPro ? "bg-gradient-to-r from-violet-600 to-violet-800 text-white" :
         info.expired ? "bg-gradient-to-r from-red-600 to-red-800 text-white" :
         "bg-gradient-to-r from-amber-500 to-amber-600 text-white"
       }`}>
         <div className="flex items-center gap-4">
           <div className="size-12 rounded-2xl bg-white/20 flex items-center justify-center">
-            {isPro ? <Crown className="size-6" /> : <Clock className="size-6" />}
+            {(isPro || isBusiness) ? <Crown className="size-6" /> : <Clock className="size-6" />}
           </div>
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider opacity-80">Plan actuel</p>
-            <p className="text-xl font-bold mt-0.5">{isPro ? "Pro" : "Essai gratuit"}</p>
+            <p className="text-xl font-bold mt-0.5">{planLabel}</p>
             <p className="text-xs opacity-70 mt-0.5">
               {info.expired ? "❌ Expiré — Renouvelez pour continuer" :
                `${days} jour${days > 1 ? "s" : ""} restant${days > 1 ? "s" : ""} · expire le ${new Date(info.expiresAt).toLocaleDateString("fr-FR")}`}
@@ -97,7 +101,7 @@ function SubscriptionPage() {
       </div>
 
       {/* Plans grid */}
-      <div className="grid sm:grid-cols-2 gap-5 mb-8">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
         {info.plans.map(plan => {
           const isCurrentPlan = info.plan === plan.id;
           return (
@@ -137,17 +141,17 @@ function SubscriptionPage() {
                   </li>
                 ))}
               </ul>
-              {plan.id === "pro" && (!isCurrentPlan || info.expired) && (
+              {plan.id !== "starter" && plan.id !== "trial" && (!isCurrentPlan || info.expired) && (
                 <button
                   onClick={() => upgrade(plan.id)}
                   disabled={upgrading}
                   className="w-full py-2.5 bg-primary text-white rounded-xl font-semibold text-sm hover:bg-primary/90 disabled:opacity-60 flex items-center justify-center gap-2 transition-colors"
                 >
                   <Zap className="size-4" />
-                  {upgrading ? "Activation…" : "Passer au Pro"}
+                  {upgrading ? "Activation…" : `Passer au ${plan.name}`}
                 </button>
               )}
-              {isCurrentPlan && !info.expired && plan.id === "pro" && (
+              {isCurrentPlan && !info.expired && plan.id !== "starter" && plan.id !== "trial" && (
                 <button
                   onClick={() => upgrade(plan.id)}
                   disabled={upgrading}
@@ -157,9 +161,9 @@ function SubscriptionPage() {
                   {upgrading ? "…" : "Renouveler"}
                 </button>
               )}
-              {plan.id === "trial" && (
+              {(plan.id === "starter" || plan.id === "trial") && (
                 <div className="py-2.5 text-center text-xs text-muted-foreground">
-                  Plan gratuit (14 jours)
+                  Plan d'essai
                 </div>
               )}
             </div>

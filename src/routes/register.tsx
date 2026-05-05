@@ -1,8 +1,16 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
+import { z } from "zod";
 import { useAuth } from "@/lib/auth";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+
+const registerSchema = z.object({
+  fullName: z.string().trim().min(2, "Nom trop court").max(190),
+  storeName: z.string().trim().min(2, "Nom de boutique trop court").max(190),
+  email: z.string().trim().email("Email invalide").max(190),
+  password: z.string().min(8, "Mot de passe : 8 caractères minimum").max(200),
+});
 
 export const Route = createFileRoute("/register")({
   head: () => ({
@@ -26,10 +34,15 @@ function RegisterPage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
+    const parsed = registerSchema.safeParse(form);
+    if (!parsed.success) {
+      setError(parsed.error.issues[0]?.message ?? "Formulaire invalide");
+      return;
+    }
+    setLoading(true);
     try {
-      await register(form);
+      await register(parsed.data);
       void navigate({ to: "/onboarding" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error");

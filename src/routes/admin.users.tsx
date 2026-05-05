@@ -1,8 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   Search, ShieldOff, Trash2, ChevronLeft, ChevronRight,
-  Crown, Clock, AlertCircle, Shield, UserCog, Check,
+  Crown, Clock, AlertCircle, Shield, UserCog, Check, KeyRound,
 } from "lucide-react";
 import { api } from "@/lib/api/client";
 import type { AdminUser, PaginatedResponse, UserRole } from "@/lib/api/types";
@@ -218,6 +218,15 @@ function AdminUsersPage() {
                   {/* Actions */}
                   <td className="px-5 py-3.5">
                     <div className="flex items-center justify-end gap-1">
+                      {isSuperAdmin && u.store && (
+                        <Link
+                          to="/admin/access"
+                          title="Gérer les accès & features"
+                          className="p-1.5 rounded-lg text-amber-300/60 hover:text-amber-300 hover:bg-amber-500/10 transition-colors"
+                        >
+                          <KeyRound className="size-3.5" />
+                        </Link>
+                      )}
                       <button
                         onClick={() => suspend(u.id)}
                         disabled={!!acting || u.id === currentUser?.id}

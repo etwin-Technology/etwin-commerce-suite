@@ -2,26 +2,31 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { useEffect, useMemo, useState } from "react";
 import { Pencil, Trash2, CheckCircle2, Truck, Eye, X, FileSpreadsheet } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api/client";
 import type { Order, OrderStatus } from "@/lib/api/types";
 import { DataToolbar } from "@/components/DataToolbar";
 import { exportOrders } from "@/lib/excel";
+import { useStoreFeatures } from "@/hooks/useStoreFeatures";
 import { StatusBadge } from "./dashboard.index";
 
 export const Route = createFileRoute("/dashboard/orders")({
   component: OrdersPage,
 });
 
-const STATUS_OPTIONS: { value: OrderStatus; label: string; tone: string }[] = [
-  { value: "pending", label: "En attente", tone: "amber" },
-  { value: "paid",    label: "Payé",       tone: "emerald" },
-  { value: "shipped", label: "Expédié",    tone: "sky" },
+// Order status options. Labels go through i18n in the JSX (see t("orders.statusXxx")).
+const STATUS_OPTIONS: { value: OrderStatus; tone: string }[] = [
+  { value: "pending", tone: "amber" },
+  { value: "paid",    tone: "emerald" },
+  { value: "shipped", tone: "sky" },
 ];
 
 function OrdersPage() {
   const { t } = useTranslation();
   const { store } = useAuth();
+  const { features } = useStoreFeatures();
+  const excelLocked = !!features && !features.excel_export;
   const [orders, setOrders]     = useState<Order[]>([]);
   const [loading, setLoading]   = useState(true);
   const [search, setSearch]     = useState("");
@@ -34,7 +39,10 @@ function OrdersPage() {
   const refresh = () => {
     if (!store) return;
     setLoading(true);
-    api.listOrders(store.id).then(setOrders).finally(() => setLoading(false));
+    api.listOrders(store.id)
+      .then(setOrders)
+      .catch(e => toast.error(e instanceof Error ? e.message : "Échec du chargement"))
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => { refresh(); /* eslint-disable-next-line */ }, [store?.id]);
@@ -67,19 +75,28 @@ function OrdersPage() {
     new Intl.NumberFormat("fr-FR", { style: "currency", currency: store.currency }).format(n);
 
   const setOrderStatus = async (o: Order, s: OrderStatus) => {
-    await api.updateOrder(store.id, o.id, { status: s });
-    refresh();
+    try {
+      await api.updateOrder(store.id, o.id, { status: s });
+      toast.success("Statut mis à jour");
+      refresh();
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Erreur"); }
   };
   const remove = async (o: Order) => {
     if (!confirm(`Supprimer la commande #${o.id} ?`)) return;
-    await api.deleteOrder(store.id, o.id);
-    refresh();
+    try {
+      await api.deleteOrder(store.id, o.id);
+      toast.success("Commande supprimée");
+      refresh();
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Erreur"); }
   };
   const saveEdit = async (patch: Partial<Order>) => {
     if (!editing) return;
-    await api.updateOrder(store.id, editing.id, patch);
-    setEditing(null);
-    refresh();
+    try {
+      await api.updateOrder(store.id, editing.id, patch);
+      toast.success("Commande mise à jour");
+      setEditing(null);
+      refresh();
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Erreur"); }
   };
 
   return (
@@ -90,8 +107,12 @@ function OrdersPage() {
           <p className="text-muted-foreground mt-1">{t("orders.subtitle")}</p>
         </div>
         <button
-          onClick={() => exportOrders(filtered, store.slug)}
-          disabled={filtered.length === 0}
+          onClick={() => {
+            if (excelLocked) { toast.error("Export Excel verrouillé pour votre plan."); return; }
+            exportOrders(filtered, store.slug);
+          }}
+          disabled={filtered.length === 0 || excelLocked}
+          title={excelLocked ? "Export Excel verrouillé pour votre plan" : "Exporter en .xlsx"}
           className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-accent disabled:opacity-50"
         >
           <FileSpreadsheet className="size-4 text-emerald-600" />
@@ -108,7 +129,7 @@ function OrdersPage() {
             label: "Statut",
             value: status,
             onChange: setStatus,
-            options: STATUS_OPTIONS.map((s) => ({ value: s.value, label: s.label })),
+            options: STATUS_OPTIONS.map((s) => ({ value: s.value, label: t(`orders.${s.value}`) })),
           },
         ]}
         dateRange={{ from, to, onChange: (f, tt) => { setFrom(f); setTo(tt); } }}
@@ -198,6 +219,7 @@ function OrdersPage() {
 function EditOrderModal({
   order, onClose, onSave,
 }: { order: Order; onClose: () => void; onSave: (patch: Partial<Order>) => void }) {
+  const { t } = useTranslation();
   const [draft, setDraft] = useState({
     customerName:    order.customerName,
     customerPhone:   order.customerPhone || "",
@@ -227,7 +249,7 @@ function EditOrderModal({
               className="w-full px-3 py-2 rounded-lg border border-input bg-background text-sm"
             >
               {STATUS_OPTIONS.map((s) => (
-                <option key={s.value} value={s.value}>{s.label}</option>
+                <option key={s.value} value={s.value}>{t(`orders.${s.value}`)}</option>
               ))}
             </select>
           </label>

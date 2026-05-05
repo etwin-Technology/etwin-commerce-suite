@@ -1,7 +1,8 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
 import { useTranslation } from "react-i18next";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth";
+import { useMockApi } from "@/lib/api/client";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 
 export const Route = createFileRoute("/login")({
@@ -11,6 +12,9 @@ export const Route = createFileRoute("/login")({
       { name: "description", content: "Connectez-vous à votre tableau de bord ETWIN Commerce." },
     ],
   }),
+  validateSearch: (s: Record<string, unknown>) => ({
+    reason: typeof s.reason === "string" ? s.reason : undefined,
+  }),
   component: LoginPage,
 });
 
@@ -18,10 +22,15 @@ function LoginPage() {
   const { t } = useTranslation();
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("demo@etwin.app");
-  const [password, setPassword] = useState("demo1234");
+  const search = useSearch({ from: "/login" });
+  const isMock = useMockApi();
+  // Only prefill demo creds when running against the local mock backend.
+  const [email, setEmail] = useState(isMock ? "demo@etwin.app" : "");
+  const [password, setPassword] = useState(isMock ? "demo1234" : "");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    search.reason === "session" ? "Session expirée. Reconnectez-vous." : null,
+  );
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,25 +107,27 @@ function LoginPage() {
               </Link>
             </p>
 
-            <div className="mt-8 p-4 rounded-xl bg-surface-alt border border-border text-xs space-y-2">
-              <p className="font-semibold text-foreground mb-2">Comptes démo — mot de passe : <code className="text-primary">demo1234</code></p>
-              {[
-                { email: "demo@etwin.app",       label: "Marchand",    desc: "Atlas Watches · Essai" },
-                { email: "admin@etwin.app",       label: "Admin",       desc: "Sahara Boutique · Pro" },
-                { email: "superadmin@etwin.app",  label: "Super Admin", desc: "Accès complet" },
-              ].map(a => (
-                <button
-                  key={a.email}
-                  type="button"
-                  onClick={() => setEmail(a.email)}
-                  className="w-full text-start px-3 py-2 rounded-lg hover:bg-accent transition-colors"
-                >
-                  <span className="font-medium text-foreground">{a.label}</span>
-                  <span className="text-muted-foreground ms-2 text-[11px]">{a.email}</span>
-                  <span className="block text-[10px] text-muted-foreground/60">{a.desc}</span>
-                </button>
-              ))}
-            </div>
+            {isMock && (
+              <div className="mt-8 p-4 rounded-xl bg-surface-alt border border-border text-xs space-y-2">
+                <p className="font-semibold text-foreground mb-2">Mode démo — mot de passe : <code className="text-primary">demo1234</code></p>
+                {[
+                  { email: "demo@etwin.app",       label: "Marchand",    desc: "Atlas Watches · Essai" },
+                  { email: "admin@etwin.app",       label: "Admin",       desc: "Sahara Boutique · Pro" },
+                  { email: "superadmin@etwin.app",  label: "Super Admin", desc: "Accès complet" },
+                ].map(a => (
+                  <button
+                    key={a.email}
+                    type="button"
+                    onClick={() => { setEmail(a.email); setPassword("demo1234"); }}
+                    className="w-full text-start px-3 py-2 rounded-lg hover:bg-accent transition-colors"
+                  >
+                    <span className="font-medium text-foreground">{a.label}</span>
+                    <span className="text-muted-foreground ms-2 text-[11px]">{a.email}</span>
+                    <span className="block text-[10px] text-muted-foreground/60">{a.desc}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

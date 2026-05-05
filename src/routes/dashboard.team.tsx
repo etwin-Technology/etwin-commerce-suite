@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { Plus, Trash2, Shield, X, UserPlus, Lock } from "lucide-react";
+import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { api, useMockApi } from "@/lib/api/client";
 import {
@@ -18,7 +20,6 @@ function TeamPage() {
   const [items, setItems] = useState<StoreMember[]>([]);
   const [editing, setEditing] = useState<StoreMember | null>(null);
   const [creating, setCreating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     if (!store) return;
@@ -31,7 +32,7 @@ function TeamPage() {
         permissions: r.permissions as unknown as Permissions,
         active: r.active, invitedAt: r.invitedAt,
       })));
-    } catch (e) { setError((e as Error).message); }
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Erreur"); }
   }, [store?.id, isMock]);
   useEffect(() => { void refresh(); }, [refresh]);
 
@@ -123,7 +124,7 @@ function TeamPage() {
                         if (isMock) memberStore.remove(m.id);
                         else await api.deleteMember(m.id);
                         await refresh();
-                      } catch (e) { setError((e as Error).message); }
+                      } catch (e) { toast.error(e instanceof Error ? e.message : "Erreur"); }
                     }} className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive">
                       <Trash2 className="size-3.5" />
                     </button>
@@ -172,6 +173,8 @@ function MemberModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const { t } = useTranslation();
+  const isMock = useMockApi();
   const [email,    setEmail]    = useState(existing?.email ?? "");
   const [fullName, setFullName] = useState(existing?.fullName ?? "");
   const [role,     setRole]     = useState<MemberRole>(existing?.role ?? "sales");
@@ -188,19 +191,28 @@ function MemberModal({
   };
 
   const save = async () => {
-    if (!email.trim() || !fullName.trim()) return;
-    const isMock = useMockApi();
+    const trimmedEmail = email.trim();
+    const trimmedName  = fullName.trim();
+    if (!trimmedEmail || !trimmedName) {
+      toast.error("Email et nom sont requis");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      toast.error("Email invalide");
+      return;
+    }
     try {
       if (isMock) {
-        if (existing) memberStore.update(existing.id, { email, fullName, role, permissions: perms, active });
-        else memberStore.add({ storeId, email, fullName, role, permissions: perms, active: true });
+        if (existing) memberStore.update(existing.id, { email: trimmedEmail, fullName: trimmedName, role, permissions: perms, active });
+        else memberStore.add({ storeId, email: trimmedEmail, fullName: trimmedName, role, permissions: perms, active: true });
       } else if (existing) {
-        await api.updateMember(existing.id, { role, permissions: perms as unknown as Record<string, boolean>, active, fullName });
+        await api.updateMember(existing.id, { role, permissions: perms as unknown as Record<string, boolean>, active, fullName: trimmedName });
       } else {
-        await api.createMember({ email, fullName, role, permissions: perms as unknown as Record<string, boolean> });
+        await api.createMember({ email: trimmedEmail, fullName: trimmedName, role, permissions: perms as unknown as Record<string, boolean> });
       }
+      toast.success(existing ? "Membre mis à jour" : "Invitation envoyée");
       onSaved();
-    } catch (e) { alert((e as Error).message); }
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Erreur"); }
   };
 
   return (
@@ -249,7 +261,7 @@ function MemberModal({
                   onChange={() => togglePerm(k)}
                   className="size-4 rounded border-input accent-primary"
                 />
-                <span className="text-sm">{PERMISSION_LABELS[k]}</span>
+                <span className="text-sm">{t(`permissions.${k}`, { defaultValue: PERMISSION_LABELS[k] })}</span>
               </label>
             ))}
           </div>

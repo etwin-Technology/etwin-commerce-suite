@@ -20,6 +20,11 @@ export interface Permissions {
 
 export type PermissionKey = keyof Permissions;
 
+/**
+ * Default French labels for permissions. Prefer `t(`permissions.${key}`)` in
+ * components so Arabic users see translated labels — these strings remain only
+ * as a fallback if i18n hasn't loaded yet.
+ */
 export const PERMISSION_LABELS: Record<PermissionKey, string> = {
   "orders.read":     "Voir les commandes",
   "orders.write":    "Modifier les commandes",

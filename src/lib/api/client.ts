@@ -26,7 +26,10 @@ import type {
 const API_BASE = (import.meta.env.VITE_PHP_API_BASE as string | undefined)?.replace(/\/$/, "") || "";
 const TOKEN_KEY  = "etwin_token";
 const TENANT_KEY = "etwin_tenant_id";
+const SESSION_KEY = "etwin_session";
 
+// True when running against the in-memory mock backend (no VITE_PHP_API_BASE).
+// In production this MUST be false — the demo-mode banner in DashboardShell warns the user.
 export const useMockApi = () => API_BASE === "";
 
 export function setAuthToken(token: string | null) {
@@ -48,6 +51,18 @@ export function getTenantId(): string | null {
   return localStorage.getItem(TENANT_KEY);
 }
 
+/** Clear auth state and force a redirect to /login. Called on any 401 response. */
+function forceLogout(): void {
+  if (typeof localStorage !== "undefined") {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(TENANT_KEY);
+    localStorage.removeItem(SESSION_KEY);
+  }
+  if (typeof window !== "undefined" && window.location.pathname !== "/login") {
+    window.location.href = "/login?reason=session";
+  }
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const token    = getAuthToken();
   const tenantId = getTenantId();
@@ -58,7 +73,18 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   if (token)    headers["Authorization"] = `Bearer ${token}`;
   if (tenantId) headers["X-Tenant-Id"]  = tenantId;
 
-  const res = await fetch(`${API_BASE}${path}`, { ...init, headers });
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, { ...init, headers });
+  } catch {
+    throw new Error("Network error — vérifiez votre connexion.");
+  }
+
+  if (res.status === 401 && !path.startsWith("/api/auth/")) {
+    forceLogout();
+    throw new Error("Session expirée. Veuillez vous reconnecter.");
+  }
+
   if (!res.ok) {
     let msg = `HTTP ${res.status}`;
     try {
@@ -82,6 +108,20 @@ export const api = {
     useMockApi()
       ? mockApi.register(input)
       : request("/api/auth/register", { method: "POST", body: JSON.stringify(input) }),
+
+  // ─── Features (per-tenant effective flags) ──────────────────────────────
+  features: (): Promise<import("./types").EffectiveFeatures> =>
+    useMockApi()
+      ? Promise.resolve({
+          custom_domain: false, telegram_bot: false, pixels: false, analytics: false,
+          remove_brand: false, priority_supp: false, excel_export: true, whatsapp_orders: true,
+          product_limit: 10, team_limit: 0, order_limit: 30,
+        })
+      : request(`/api/features`),
+
+  // ─── Telegram connect-link (real backend only) ──────────────────────────
+  telegramConnectLink: (): Promise<{ url: string; botUsername: string }> =>
+    request(`/api/telegram/connect-link`),
 
   // ─── Stores ─────────────────────────────────────────────────────────────
   updateStore: (tenantId: string, patch: Partial<Store>): Promise<Store> =>
@@ -221,7 +261,7 @@ export const api = {
   getSubscription: (): Promise<SubscriptionInfo> =>
     request(`/api/subscription`),
 
-  upgradeSubscription: (plan: "pro"): Promise<{ ok: boolean; plan: string; expiresAt: string }> =>
+  upgradeSubscription: (plan: "starter" | "pro" | "business"): Promise<{ ok: boolean; plan: string; expiresAt: string }> =>
     request(`/api/subscription/upgrade`, { method: "POST", body: JSON.stringify({ plan }) }),
 
   // ─── Admin — Stats & Lists ───────────────────────────────────────────────
@@ -298,4 +338,24 @@ export const api = {
     request(`/api/members/${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
   deleteMember: (id: string): Promise<{ ok: boolean }> =>
     request(`/api/members/${id}`, { method: "DELETE" }),
+
+  // ─── Admin — feature catalog / plan catalog / per-store access ───────────
+  adminFeatureCatalog: (): Promise<import("./types").FeatureCatalogItem[]> =>
+    request(`/api/admin/feature-catalog`),
+  adminPlanCatalog: (): Promise<import("./types").PlanCatalogEntry[]> =>
+    request(`/api/admin/plan-catalog`),
+  adminUpdatePlanCatalog: (id: string, patch: Partial<import("./types").PlanCatalogEntry>): Promise<import("./types").PlanCatalogEntry> =>
+    request(`/api/admin/plan-catalog/${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
+  adminGetStoreAccess: (storeId: string): Promise<import("./types").StoreAccessResponse> =>
+    request(`/api/admin/stores/${storeId}/access`),
+  adminSetStoreAccess: (storeId: string, input: {
+    feature: import("./types").FeatureKey;
+    granted: boolean;
+    value?: number | null;
+    reason?: string | null;
+    expiresAt?: string | null;
+  }): Promise<{ ok: boolean }> =>
+    request(`/api/admin/stores/${storeId}/access`, { method: "POST", body: JSON.stringify(input) }),
+  adminClearStoreAccess: (storeId: string, feature: import("./types").FeatureKey): Promise<{ ok: boolean }> =>
+    request(`/api/admin/stores/${storeId}/access/${feature}`, { method: "DELETE" }),
 };
